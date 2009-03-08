@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import with_statement
 import random
 from timing import timer
 
@@ -8,9 +9,11 @@ import pygame
 from pygame.locals import *
 from OpenGL.GL import *
 
-from with_opengl import glMatrix, glPrimitive
+from with_opengl import glMatrix, glIdentityMatrix, glPrimitive
 
 from time import sleep
+
+from player import Ship
 
 # don't initialise sound stuff plzkthxbai
 pygame.mixer = None
@@ -27,6 +30,11 @@ sets the resolution and sets up the projection matrix"""
   glMatrixMode(GL_PROJECTION)
   glLoadIdentity()
   glOrtho(0, width / 32, height / 32, 0, -10, 10)
+  #     x
+  #  0---->
+  #  |
+  # y|
+  #  v
   glMatrixMode(GL_MODELVIEW)
   glLoadIdentity()
 
@@ -53,6 +61,10 @@ def rungame():
 
   timer.gameSpeed = 1
 
+  ps = Ship()
+
+  gameobjects = [ps]
+
   while running:
     timer.startFrame()
     for event in pygame.event.get():
@@ -63,19 +75,24 @@ def rungame():
         if event.key == K_ESCAPE:
           running = False
 
+    kp = pygame.key.get_pressed()
+    if kp[K_LEFT]:
+      ps.turn(-timer.speed())
+    if kp[K_RIGHT]:
+      ps.turn(timer.speed())
+
+    for go in gameobjects:
+      go.heartbeat(timer.speed())
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    glLoadIdentity()
-
-    with glMatrix:
+    with glIdentityMatrix():
       # do stuff
-      lvl.scroller.scroll()
-      lvl.draw()
-      with glMatrix:
-        #lvl.scroller.scroll()
-        plr.draw()
-      glPopMatrix()
+      glTranslatef(10, 10, 0)
+      for go in gameobjects:
+        with glMatrix():
+          go.render()
 
-    with glIdentityMatrix:
+    with glIdentityMatrix():
       glTranslatef(5, 5, 0)
       glScalef(1./32, 1./32, 1)
       # do gui stuff here
