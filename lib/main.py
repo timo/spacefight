@@ -57,13 +57,27 @@ def rungame():
   # try to connect to the other party
 
   #mode = "a"
-  
+
+  tickinterval = 50
+
   try:
-    mode, port, addr = argv[1:]
+    mode = argv[1]
+    if mode == "s":
+      port = argv[2]
+      if len(argv) > 3:
+        tickinterval = int(argv[3])
+    elif mode == "c":
+      addr = argv[2]
+      port = argv[3]
+      if len(argv) > 4:
+        cport = argv[4]
+      else:
+        cport = port
   except:
-    mode, port = argv[1:]
-  
-  cport = port
+    print "usage:"
+    print argv[0], "s port [ticksize=50]"
+    print argv[0], "c addr port [clientport]"
+    print "s is for server mode, c is for client mode."
 
   #while mode not in "sScC":
   #  print "please choose from (s)erver or (c)lient"
@@ -90,7 +104,7 @@ def rungame():
     conn = socket(AF_INET, SOCK_DGRAM)
     conn.connect(data[1])
     
-    conn.send("ack")
+    conn.send("tickinterval:" + str(tickinterval))
 
     print "awaiting player ship."
 
@@ -122,6 +136,8 @@ def rungame():
     data = conn.recvfrom(4096)
 
     print data[0], "gotten as response"
+    tickinterval = int(data[0].split(":")[1])
+    print "tickinterval is now", tickinterval
 
     conn.connect(data[1])
 
@@ -134,6 +150,8 @@ def rungame():
     print "awaiting state response..."
 
     gs = GameState(conn.recv(4096))
+  
+  gs.tickinterval = tickinterval
 
   conn.setblocking(0)
 
@@ -142,6 +160,7 @@ def rungame():
   # init all stuff
   init()
   running = True
+  timer.wantedFrameTime = tickinterval * 0.001
   timer.startTiming()
 
   timer.gameSpeed = 1
