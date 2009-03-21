@@ -47,12 +47,9 @@ even if the framerate constantly changes"""
 sets an appropriate value for self.curspd"""
     self.frameTime = time.time() - self.frameStartTime
     if self.wantedFrameTime - self.catchUp > self.frameTime:
-      if self.catchUp > 0:
-        print "catching up on a lag of", self.catchUp, "by sleeping", (self.wantedFrameTime - self.catchUp - self.frameTime) / 1000, "seconds."
       time.sleep((self.wantedFrameTime - self.catchUp - self.frameTime))
       self.catchUp = 0
     else:
-      print "frame took %f, but we wanted %f and a catch-up of %f" % (self.frameTime, self.wantedFrameTime, self.catchUp)
       self.catchUp += self.frameTime - self.wantedFrameTime
 
   def blink(self, duration):

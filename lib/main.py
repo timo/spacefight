@@ -120,12 +120,9 @@ def rungame():
       try:
         conn.sendto("HELLO %s", (addr, int(port)))
         print "hello sent."
-        sleep(5)
         data = conn.recvfrom(4096)
       except error:
-        pass
-
-    
+        sleep(5)
 
     print data[0], "gotten as response"
     tickinterval = int(data[0].split(":")[1])
@@ -197,6 +194,7 @@ def rungame():
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
       with glIdentityMatrix():
         # do stuff
+        renderers.renderGameGrid(localplayer)
         glTranslatef(25 - localplayer.position[0], 18.5 - localplayer.position[1], 0)
         renderers.renderWholeState(gs)
 

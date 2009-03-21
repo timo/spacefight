@@ -4,6 +4,24 @@ from OpenGL.GL import *
 from with_opengl import glPrimitive, glMatrix
 from math import pi, sin, cos
 
+def renderGameGrid(player):
+  with glPrimitive(GL_LINES):
+    for x in range(-50, 50, 4):
+      if x % 16 == 0:
+        glColor(0.6, 0.6, 0, 1)
+      else:
+        glColor(0.3, 0.3, 0, 1)
+      glVertex(x, -20, 0)
+      glVertex(x, 20, 0)
+    for y in range(-50, 50, 4):
+      if y % 16 == 0:
+        glColor(0.6, 0.6, 0)
+      else:
+        glColor(0.3, 0.3, 0)
+      glVertex(-20, y, 0)
+      glVertex(20, y, 0)
+
+
 def renderWholeState(state):
   for obj in state.objects:
     for cls, met in methodMap.items():
