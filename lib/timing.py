@@ -22,7 +22,11 @@ even if the framerate constantly changes"""
 
     # this variable is used for artificially speeding up the game
     self.gameSpeed = 1
-  
+
+    self.wantedFrameTime = 0.1
+
+    self.catchUp = 0
+
   def startTiming(self):
     self.running = True
     self.startTime = time.time()
@@ -30,21 +34,26 @@ even if the framerate constantly changes"""
   def now(self):
     """returns the current time in the game in seconds with high precision"""
     if self.running:
-      return time.time() - self.startTime
+      return self.frameStartTime - self.startTime
     else:
       raise Exception, "timer not yet initialized, yet now was called"
 
   def startFrame(self):
     """call this function at the beginning of a frame to start the speed adjusting"""
-    self.frameStartTime = self.now()
+    self.frameStartTime = time.time()
 
   def endFrame(self):
     """call this function at the end of a frame to finish speed adjusting.
 sets an appropriate value for self.curspd"""
-    self.frameTime = self.now() - self.frameStartTime
-    # this should probably work...
-    self.curspd = self.frameTime
-    self.curspd = self.speed()
+    self.frameTime = time.time() - self.frameStartTime
+    if self.wantedFrameTime - self.catchUp > self.frameTime:
+      if self.catchUp > 0:
+        print "catching up on a lag of", self.catchUp, "by sleeping", (self.wantedFrameTime - self.catchUp - self.frameTime) / 1000, "seconds."
+      time.sleep((self.wantedFrameTime - self.catchUp - self.frameTime) / 1000)
+      self.catchUp = 0
+    else:
+      print "frame took %s, but we wanted %s" % (self.frameTime, self.wantedFrameTime)
+      self.catchUp += self.frameTime - self.wantedFrameTime
 
   def blink(self, duration):
     if self.now() % (duration * 2) < duration:

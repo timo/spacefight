@@ -1,25 +1,26 @@
 #!/usr/bin/python
 from __future__ import with_statement
-import random
-from timing import timer
-
-from math import pi
 
 import pygame
 from pygame.locals import *
 from OpenGL.GL import *
-
 from with_opengl import glMatrix, glIdentityMatrix, glPrimitive
 
 from time import sleep
+from random import random
+from math import pi, sin, cos
+from socket import *
 
-from player import Ship
+from timing import timer
+from gamestate import *
+import renderers
+from sys import argv
 
 # don't initialise sound stuff plzkthxbai
 pygame.mixer = None
 
 screen = None
-screensize = (1024, 786)
+screensize = (640, 480)
 
 def setres((width, height)):
   """res = tuple
@@ -29,7 +30,7 @@ sets the resolution and sets up the projection matrix"""
   glViewport(0, 0, width, height)
   glMatrixMode(GL_PROJECTION)
   glLoadIdentity()
-  glOrtho(0, width / 32, height / 32, 0, -10, 10)
+  glOrtho(0, 800 / 32, 600 / 32, 0, -10, 10) # those are resolution-independent to be fair
   #     x
   #  0---->
   #  |
@@ -55,15 +56,88 @@ def rungame():
   # init all stuff
   init()
 
+  # try to connect to the other party
+
+  mode = "a"
+  
+  
+  while mode not in "sScC":
+    print "please choose from (s)erver or (c)lient"
+    mode = raw_input().lower()
+  
+#  if mode == "c":
+#    print "please input the client port"
+#    cport = raw_input()
+#    print "please input the server address"
+#    addr = raw_input()
+#
+#  print "please input the port"
+#  port = raw_input()
+
+  port = cport = 7777
+  addr = "127.0.0.1"
+
+  if mode == "s":
+    server = socket(AF_INET, SOCK_DGRAM)
+    server.bind(("", int(port)))
+    print "now waiting for client"
+    data = server.recvfrom(4096)
+    print data
+    conn = socket(AF_INET, SOCK_DGRAM)
+    conn.connect(data[1])
+    
+    conn.send("ack")
+
+    print "awaiting player ship."
+
+    shipdata = conn.recv(4096)
+
+    remoteship = ShipState(shipdata)
+
+    gs = GameState()
+    localplayer = ShipState()
+    localplayer.position = [0, 0]
+    localplayer.alignment = random()
+    localplayer.firing = 1
+    gs.spawn(localplayer)
+    gs.spawn(remoteship)
+    print "transmitting state"
+    conn.send(gs.serialize())
+  
+  elif mode == "c":
+    conn = socket(AF_INET, SOCK_DGRAM)
+    try:
+      conn.bind(("", int(cport)))
+    except:
+      try:
+        conn.bind(("", int(cport) + 1))
+      except:
+        conn.bind(("", int(cport) + 2))
+    conn.sendto("HELLO %s", (addr, int(port)))
+    print "hello sent."
+
+    data = conn.recvfrom(4096)
+
+    print data[0], "gotten as response"
+
+    conn.connect(data[1])
+
+    plp = ShipState() # proposed local player state
+    plp.position = [random() * 10, random() * 10]
+    plp.alignment = random()
+    plp.color = (0, 1, 0)
+    conn.send(plp.serialize())
+
+    print "awaiting state response..."
+
+    gs = GameState(conn.recv(4096))
+
   # yay! play the game!
+  
   running = True
   timer.startTiming()
 
   timer.gameSpeed = 1
-
-  ps = Ship()
-
-  gameobjects = [ps]
 
   while running:
     timer.startFrame()
@@ -75,22 +149,17 @@ def rungame():
         if event.key == K_ESCAPE:
           running = False
 
-    kp = pygame.key.get_pressed()
-    if kp[K_LEFT]:
-      ps.turn(-timer.speed())
-    if kp[K_RIGHT]:
-      ps.turn(timer.speed())
-
-    for go in gameobjects:
-      go.heartbeat(timer.speed())
+    #kp = pygame.key.get_pressed()
+    #if kp[K_LEFT]:
+    #  ps.turn(-1)
+    #if kp[K_RIGHT]:
+    #  ps.turn(1)
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     with glIdentityMatrix():
       # do stuff
       glTranslatef(10, 10, 0)
-      for go in gameobjects:
-        with glMatrix():
-          go.render()
+      renderers.renderWholeState(gs)
 
     with glIdentityMatrix():
       glTranslatef(5, 5, 0)
@@ -98,6 +167,13 @@ def rungame():
       # do gui stuff here
 
     pygame.display.flip()
+
+    if mode == "s":
+      gs.tick()
+      conn.send(gs.serialize())
+    elif mode == "c":
+      gs.deserialize(conn.recv(4096))
+
     timer.endFrame()
 
   # exit pygame
