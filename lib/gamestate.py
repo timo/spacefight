@@ -108,8 +108,8 @@ class ShipState(StateObject):
   def tick(self, dt):
     self.position[0] += self.speed[0] * dt
     self.position[1] += self.speed[1] * dt
-    self.speed[0] *= 0.9 ** (dt * 0.01)
-    self.speed[1] *= 0.9 ** (dt * 0.01)
+    self.speed[0] *= 0.95 ** (dt * 0.01)
+    self.speed[1] *= 0.95 ** (dt * 0.01)
 
     self.alignment += self.turning * dt * 0.0007
     self.turning = 0

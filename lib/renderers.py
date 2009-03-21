@@ -8,18 +8,18 @@ def renderGameGrid(player):
   with glPrimitive(GL_LINES):
     for x in range(int(player.position[0] - 30), int(player.position[0] + 30), 1):
       if x % 10 == 0:
-        glColor(0.6, 0.6, 0, 1)
-      elif x % 10 == 5:
         glColor(0.3, 0.3, 0, 1)
+      elif x % 10 == 5:
+        glColor(0.2, 0.2, 0, 1)
       else:
         glColor(0.05, 0.05, 0, 1)
       glVertex2f(x, -100)
       glVertex2f(x, 100)
     for y in range(int(player.position[1] - 30), int(player.position[1] + 30), 1):
       if y % 10 == 0:
-        glColor(0.6, 0.6, 0)
-      elif y % 10 == 5:
         glColor(0.3, 0.3, 0)
+      elif y % 10 == 5:
+        glColor(0.2, 0.2, 0)
       else:
         glColor(0.05, 0.05, 0)
       glVertex2f(-100, y)
