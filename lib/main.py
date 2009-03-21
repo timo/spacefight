@@ -30,7 +30,7 @@ sets the resolution and sets up the projection matrix"""
   glViewport(0, 0, width, height)
   glMatrixMode(GL_PROJECTION)
   glLoadIdentity()
-  glOrtho(0, 800 / 32, 600 / 32, 0, -10, 10) # those are resolution-independent to be fair
+  glOrtho(0, 1600 / 32, 1200 / 32, 0, -10, 10) # those are resolution-independent to be fair
   #     x
   #  0---->
   #  |
@@ -132,6 +132,8 @@ def rungame():
 
     gs = GameState(conn.recv(4096))
 
+  conn.setblocking(0)
+
   # yay! play the game!
   
   running = True
@@ -149,11 +151,22 @@ def rungame():
         if event.key == K_ESCAPE:
           running = False
 
-    #kp = pygame.key.get_pressed()
-    #if kp[K_LEFT]:
-    #  ps.turn(-1)
-    #if kp[K_RIGHT]:
-    #  ps.turn(1)
+    kp = pygame.key.get_pressed()
+    if kp[K_LEFT]:
+      if mode == "s":
+        localplayer.turning = -1
+      else:
+        conn.send("l")
+    if kp[K_RIGHT]:
+      if mode == "s":
+        localplayer.turning = 1
+      else:
+       conn.send("r")
+    if kp[K_UP]:
+      if mode == "s":
+        localplayer.thrust = 1
+      else:
+        conn.send("t")
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     with glIdentityMatrix():
@@ -171,8 +184,22 @@ def rungame():
     if mode == "s":
       gs.tick()
       conn.send(gs.serialize())
+      try:
+        control = conn.recv(4096)
+        if control[0] == "l":
+          remoteship.turning = -1
+        elif control[0] == "r":
+          remoteship.turning = 1
+        elif control[0] == "t":
+          remoteship.thrust = 1
+        else:
+          print "gor unknown message:", control.__repr__()
+      except error:
+       pass
     elif mode == "c":
+      conn.setblocking(1)
       gs.deserialize(conn.recv(4096))
+      conn.setblocking(0)
 
     timer.endFrame()
 

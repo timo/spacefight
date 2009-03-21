@@ -8,7 +8,7 @@ def scatter(lis, amount = 1):
 class GameState:
   def __init__(self, data = None):
     self.objects = []
-    self.tickinterval = 100 # in miliseconds
+    self.tickinterval = 70 # in miliseconds
     self.clock = 0
     if data:
       self.deserialize(data)
@@ -82,8 +82,10 @@ class ShipState(StateObject):
     self.position = [0, 0]
     self.speed = [0, 0]        # in units per milisecond
     self.alignment = 0         # from 0 to 1
+    self.turning = 0
+    self.thrust = 0
     self.timeToReload = 0      # in miliseconds
-    self.reloadInterval = 30000
+    self.reloadInterval = 1000
     self.firing = 0
     self.team = 0
 
@@ -106,15 +108,22 @@ class ShipState(StateObject):
   def tick(self, dt):
     self.position[0] += self.speed[0] * dt
     self.position[1] += self.speed[1] * dt
-    self.speed[0] *= 1.0 - (0.1 * dt)
-    self.speed[1] *= 1.0 - (0.1 * dt)
+    self.speed[0] *= 0.9 ** (dt * 0.01)
+    self.speed[1] *= 0.9 ** (dt * 0.01)
+
+    self.alignment += self.turning * dt * 0.0007
+    self.turning = 0
+
+    if self.thrust:
+      self.speed = [cos(self.alignment * pi * 2) * 0.01, sin(self.alignment * pi * 2) * 0.01]
+      self.thrust = 0
 
     if self.timeToReload > 0:
       self.timeToReload = max(0, self.timeToReload - dt)
     
     if self.firing and self.timeToReload == 0:
       bul = BulletState()
-      face = scatter([sin(self.alignment * pi * 2) * 0.0001, cos(self.alignment * pi * 2) * 0.0001], 0.00001)
+      face = scatter([cos(self.alignment * pi * 2) * 0.02, sin(self.alignment * pi * 2) * 0.02], 0.002)
       bul.position = [self.position[0] + face[0], self.position[1] + face[1]]
       bul.speed = face
       self.state.spawn(bul)

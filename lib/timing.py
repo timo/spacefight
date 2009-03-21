@@ -23,7 +23,7 @@ even if the framerate constantly changes"""
     # this variable is used for artificially speeding up the game
     self.gameSpeed = 1
 
-    self.wantedFrameTime = 0.1
+    self.wantedFrameTime = 0.07
 
     self.catchUp = 0
 
@@ -49,7 +49,7 @@ sets an appropriate value for self.curspd"""
     if self.wantedFrameTime - self.catchUp > self.frameTime:
       if self.catchUp > 0:
         print "catching up on a lag of", self.catchUp, "by sleeping", (self.wantedFrameTime - self.catchUp - self.frameTime) / 1000, "seconds."
-      time.sleep((self.wantedFrameTime - self.catchUp - self.frameTime) / 1000)
+      time.sleep((self.wantedFrameTime - self.catchUp - self.frameTime))
       self.catchUp = 0
     else:
       print "frame took %s, but we wanted %s" % (self.frameTime, self.wantedFrameTime)
