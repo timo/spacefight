@@ -14,7 +14,7 @@ def renderWholeState(state):
 def renderShip(ship):
   glTranslate(*ship.position + [0])
   glRotatef(ship.alignment * 360, 0, 0, 1)
-  with glPrimitive(GL_LINE_LOOP):
+  with glPrimitive(GL_POLYGON):
     glColor(*ship.color)
     glVertex2f(1, 0)
     glVertex2f(-1, 0.5)
@@ -24,7 +24,7 @@ def renderShip(ship):
 def renderBullet(bul):
   glTranslate(*bul.position + [0])
   glScale(0.2, 0.2, 0.2)
-  with glPrimitive(GL_LINE_LOOP):
+  with glPrimitive(GL_POLYGON):
     glColor(0, 0, 1)
     for posi in [0, 0.4, 0.8, 0.2, 0.6]:
       glVertex2f(sin(posi * 2 * pi), cos(posi * 2 * pi))
