@@ -47,10 +47,9 @@ def init():
 
   # some OpenGL magic!
   glEnable(GL_BLEND)
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-  glEnable(GL_LINE_SMOOTH)
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE)
   glEnable(GL_TEXTURE_2D)
-  glClearColor(0,0,0.0,1.0)
+  glClearColor(0.1,0.1,0.0,1.0)
 
 def rungame():
 
@@ -194,8 +193,8 @@ def rungame():
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
       with glIdentityMatrix():
         # do stuff
-        renderers.renderGameGrid(localplayer)
         glTranslatef(25 - localplayer.position[0], 18.5 - localplayer.position[1], 0)
+        renderers.renderGameGrid(localplayer)
         renderers.renderWholeState(gs)
 
       with glIdentityMatrix():
