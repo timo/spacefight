@@ -23,7 +23,7 @@ even if the framerate constantly changes"""
     # this variable is used for artificially speeding up the game
     self.gameSpeed = 1
 
-    self.wantedFrameTime = 0.07
+    self.wantedFrameTime = 0.05
 
     self.catchUp = 0
 
@@ -52,7 +52,7 @@ sets an appropriate value for self.curspd"""
       time.sleep((self.wantedFrameTime - self.catchUp - self.frameTime))
       self.catchUp = 0
     else:
-      print "frame took %s, but we wanted %s" % (self.frameTime, self.wantedFrameTime)
+      print "frame took %f, but we wanted %f and a catch-up of %f" % (self.frameTime, self.wantedFrameTime, self.catchUp)
       self.catchUp += self.frameTime - self.wantedFrameTime
 
   def blink(self, duration):

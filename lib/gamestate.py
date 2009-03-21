@@ -8,7 +8,7 @@ def scatter(lis, amount = 1):
 class GameState:
   def __init__(self, data = None):
     self.objects = []
-    self.tickinterval = 70 # in miliseconds
+    self.tickinterval = 50 # in miliseconds
     self.clock = 0
     if data:
       self.deserialize(data)
