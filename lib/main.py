@@ -30,7 +30,7 @@ sets the resolution and sets up the projection matrix"""
   glViewport(0, 0, width, height)
   glMatrixMode(GL_PROJECTION)
   glLoadIdentity()
-  glOrtho(0, 1600 / 32, 1200 / 32, 0, -10, 10) # those are resolution-independent to be fair
+  glOrtho(0, 50, 37, 0, -10, 10) # those are resolution-independent to be fair
   #     x
   #  0---->
   #  |
@@ -150,6 +150,7 @@ def rungame():
     print "awaiting state response..."
 
     gs = GameState(conn.recv(4096))
+    localplayer = gs.objects[1]
   
   gs.tickinterval = tickinterval
 
@@ -204,7 +205,7 @@ def rungame():
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
       with glIdentityMatrix():
         # do stuff
-        glTranslatef(10, 10, 0)
+        glTranslatef(25 - localplayer.position[0], 18.5 - localplayer.position[1], 0)
         renderers.renderWholeState(gs)
 
       with glIdentityMatrix():
@@ -248,6 +249,7 @@ def rungame():
             last = True
 
         gs.deserialize(gsdat)
+        localplayer = gs.objects[1]
 
     if catchUpAccum > 2:
       catchUpAccum = 0
