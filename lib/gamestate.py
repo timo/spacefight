@@ -136,7 +136,7 @@ class BulletState(StateObject):
     self.position = [0, 0]
     self.speed = [0, 0]
     self.team = 0
-    self.lifetime = 100000
+    self.lifetime = 10000
     self.state = None
    
     self.statevars = ["x", "y", "sx", "sy", "team", "lifetime"]

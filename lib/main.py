@@ -53,17 +53,21 @@ def init():
   glClearColor(0,0,0.0,1.0)
 
 def rungame():
-  # init all stuff
-  init()
 
   # try to connect to the other party
 
-  mode = "a"
+  #mode = "a"
   
+  try:
+    mode, port, addr = argv[1:]
+  except:
+    mode, port = argv[1:]
   
-  while mode not in "sScC":
-    print "please choose from (s)erver or (c)lient"
-    mode = raw_input().lower()
+  cport = port
+
+  #while mode not in "sScC":
+  #  print "please choose from (s)erver or (c)lient"
+  #  mode = raw_input().lower()
   
 #  if mode == "c":
 #    print "please input the client port"
@@ -74,8 +78,8 @@ def rungame():
 #  print "please input the port"
 #  port = raw_input()
 
-  port = cport = 7777
-  addr = "127.0.0.1"
+#  port = cport = 7777
+#  addr = "127.0.0.1"
 
   if mode == "s":
     server = socket(AF_INET, SOCK_DGRAM)
@@ -136,6 +140,8 @@ def rungame():
 
   # yay! play the game!
   
+  # init all stuff
+  init()
   running = True
   timer.startTiming()
 
