@@ -147,6 +147,8 @@ def rungame():
 
   timer.gameSpeed = 1
 
+  catchUpAccum = 0
+
   while running:
     timer.startFrame()
     for event in pygame.event.get():
@@ -174,38 +176,57 @@ def rungame():
       else:
         conn.send("t")
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    with glIdentityMatrix():
-      # do stuff
-      glTranslatef(10, 10, 0)
-      renderers.renderWholeState(gs)
+    catchUpAccum += timer.catchUp
+    if catchUpAccum < 2 or mode == "s":
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+      with glIdentityMatrix():
+        # do stuff
+        glTranslatef(10, 10, 0)
+        renderers.renderWholeState(gs)
 
-    with glIdentityMatrix():
-      glTranslatef(5, 5, 0)
-      glScalef(1./32, 1./32, 1)
-      # do gui stuff here
+      with glIdentityMatrix():
+        glTranslatef(5, 5, 0)
+        glScalef(1./32, 1./32, 1)
+        # do gui stuff here
 
-    pygame.display.flip()
+      pygame.display.flip()
 
-    if mode == "s":
-      gs.tick()
-      conn.send(gs.serialize())
-      try:
-        control = conn.recv(4096)
-        if control[0] == "l":
-          remoteship.turning = -1
-        elif control[0] == "r":
-          remoteship.turning = 1
-        elif control[0] == "t":
-          remoteship.thrust = 1
-        else:
-          print "gor unknown message:", control.__repr__()
-      except error:
-       pass
-    elif mode == "c":
-      conn.setblocking(1)
-      gs.deserialize(conn.recv(4096))
-      conn.setblocking(0)
+      if mode == "s":
+        gs.tick()
+        conn.send(gs.serialize())
+        try:
+          while True:
+            control = conn.recv(4096)
+            if control[0] == "l":
+              remoteship.turning = -1
+            elif control[0] == "r":
+              remoteship.turning = 1
+            elif control[0] == "t":
+              remoteship.thrust = 1
+            else:
+              print "gor unknown message:", control.__repr__()
+        except error:
+         pass
+      elif mode == "c":
+        gsdat = ""
+        while not gsdat:
+          try:
+            gsdat = conn.recv(4096)
+          except error:
+            pass
+
+        last = False
+        while not last:
+          try: 
+            gsdat = conn.recv(4096)
+          except error:
+            last = True
+
+        gs.deserialize(gsdat)
+
+    if catchUpAccum > 2:
+      catchUpAccum = 0
+      print "skipped a gamestate update."
 
     timer.endFrame()
 
