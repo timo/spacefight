@@ -102,7 +102,6 @@ def rungame():
     localplayer = ShipState()
     localplayer.position = [0, 0]
     localplayer.alignment = random()
-    localplayer.firing = 1
     gs.spawn(localplayer)
     gs.spawn(remoteship)
     print "transmitting state"
@@ -175,6 +174,11 @@ def rungame():
         localplayer.thrust = 1
       else:
         conn.send("t")
+    if kp[K_SPACE]:
+      if mode == "s":
+        localplayer.firing = True
+      else:
+        conn.send("f")
 
     catchUpAccum += timer.catchUp
     if catchUpAccum < 2 or mode == "s":
@@ -203,6 +207,8 @@ def rungame():
               remoteship.turning = 1
             elif control[0] == "t":
               remoteship.thrust = 1
+            elif control[0] == "f":
+              remoteship.firing = True
             else:
               print "gor unknown message:", control.__repr__()
         except error:

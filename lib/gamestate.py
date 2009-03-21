@@ -89,8 +89,8 @@ class ShipState(StateObject):
     self.firing = 0
     self.team = 0
 
-    self.statevars = ["r", "g", "b", "x", "y", "sx", "sy", "alignment", "timeToReload", "reloadInterval", "firing", "team"]
-    self.stateformat = "10f2b"
+    self.statevars = ["r", "g", "b", "x", "y", "sx", "sy", "alignment", "timeToReload", "reloadInterval", "team"]
+    self.stateformat = "10f1b"
 
     if data:
       self.deserialize(data)
@@ -128,6 +128,7 @@ class ShipState(StateObject):
       bul.speed = face
       self.state.spawn(bul)
       self.timeToReload = self.reloadInterval
+      self.firing = False
 
 class BulletState(StateObject):
   typename = "bu"
