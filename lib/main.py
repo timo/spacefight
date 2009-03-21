@@ -20,7 +20,7 @@ from sys import argv
 pygame.mixer = None
 
 screen = None
-screensize = (640, 480)
+screensize = (800, 600)
 
 def setres((width, height)):
   """res = tuple
