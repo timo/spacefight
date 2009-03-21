@@ -56,8 +56,6 @@ def rungame():
 
   # try to connect to the other party
 
-  #mode = "a"
-
   tickinterval = 50
 
   try:
@@ -78,22 +76,6 @@ def rungame():
     print argv[0], "s port [ticksize=50]"
     print argv[0], "c addr port [clientport]"
     print "s is for server mode, c is for client mode."
-
-  #while mode not in "sScC":
-  #  print "please choose from (s)erver or (c)lient"
-  #  mode = raw_input().lower()
-  
-#  if mode == "c":
-#    print "please input the client port"
-#    cport = raw_input()
-#    print "please input the server address"
-#    addr = raw_input()
-#
-#  print "please input the port"
-#  port = raw_input()
-
-#  port = cport = 7777
-#  addr = "127.0.0.1"
 
   if mode == "s":
     server = socket(AF_INET, SOCK_DGRAM)
@@ -130,10 +112,20 @@ def rungame():
         conn.bind(("", int(cport) + 1))
       except:
         conn.bind(("", int(cport) + 2))
-    conn.sendto("HELLO %s", (addr, int(port)))
-    print "hello sent."
+    
 
-    data = conn.recvfrom(4096)
+    conn.settimeout(10)
+    data = ""
+    while not data:
+      try:
+        conn.sendto("HELLO %s", (addr, int(port)))
+        print "hello sent."
+        sleep(5)
+        data = conn.recvfrom(4096)
+      except error:
+        pass
+
+    
 
     print data[0], "gotten as response"
     tickinterval = int(data[0].split(":")[1])
@@ -152,9 +144,9 @@ def rungame():
     gs = GameState(conn.recv(4096))
     localplayer = gs.objects[1]
   
+  conn.setblocking(0)
   gs.tickinterval = tickinterval
 
-  conn.setblocking(0)
 
   # yay! play the game!
   
