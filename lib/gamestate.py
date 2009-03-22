@@ -194,8 +194,11 @@ class ShipState(StateObject):
       self.shield = self.maxShield
 
   def hitShield(self, damage = 5000):
-    if self.shield > damage:
+    if self.shield < damage:
       self.shield, damage = self.shield - damage, 0
+    else:
+      self.shield, damage = self.shield - damage, damage - self.shield
+
     self.hull -= damage
 
   def collide(self, other, vec):
