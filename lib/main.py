@@ -102,8 +102,8 @@ def rungame():
     gs.spawn(localplayer)
     gs.spawn(remoteship)
     planet = PlanetState()
-    planet.position = [random() * 30 - 15, random() * 30 - 15]
-    gs.spawn(planet)
+    #planet.position = [random() * 30 - 15, random() * 30 - 15]
+    #gs.spawn(planet)
     print "transmitting state"
     conn.send(gs.serialize())
   

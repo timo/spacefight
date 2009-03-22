@@ -140,7 +140,7 @@ class ShipState(StateObject):
     self.turning = 0
     self.thrust = 0
     self.timeToReload = 0      # in miliseconds
-    self.reloadInterval = 1000
+    self.reloadInterval = 500
     self.firing = 0
     self.team = 0
     self.size = 2
@@ -172,7 +172,7 @@ class ShipState(StateObject):
     self.turning = 0
 
     if self.thrust:
-      self.speed = [self.speed[0] + cos(self.alignment * pi * 2) * 0.0002, self.speed[1] + sin(self.alignment * pi * 2) * 0.0002]
+      self.speed = [self.speed[0] + cos(self.alignment * pi * 2) * 0.001, self.speed[1] + sin(self.alignment * pi * 2) * 0.001]
       self.thrust = 0
 
     if self.timeToReload > 0:
