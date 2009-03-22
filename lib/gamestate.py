@@ -42,6 +42,8 @@ class GameState:
         obj = ShipState()
       elif type == "bu":
         obj = BulletState()
+      elif type == "ps":
+        obj = PlanetState()
       
       objlen = struct.calcsize(obj.stateformat)
       objdat, data = data[:objlen], data[objlen:]
