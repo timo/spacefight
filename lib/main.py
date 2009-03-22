@@ -231,8 +231,6 @@ def rungame():
                 if gshist[i].clock == clk:
                   found = i
 
-              print "command is applied at", clk, "which is in position", found, "in the history. our current clock is", gs.clock
-
               rship = gshist[found].getById(othershipid)
             else:
               rship = gs.getById(othershipid)
@@ -257,10 +255,12 @@ def rungame():
               gs.tick()
         except error:
           pass
+
         if len(gshist) < 20:
           gshist.append(gs.copy())
         else:
           gshist = gshist[1:] + [gs.copy()]
+
         gs.tick()
         localplayer = gs.getById(myshipid)
         conn.send(gs.serialize())

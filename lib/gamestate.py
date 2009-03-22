@@ -1,6 +1,7 @@
 import struct
 from math import pi, sin, cos
 from random import random
+import copy
 
 def scatter(lis, amount = 1):
   return [random() * amount - amount / 2 + lisi for lisi in lis]
@@ -15,7 +16,7 @@ class GameState:
       self.deserialize(data)
 
   def copy(self):
-    return GameState(self.serialize())
+    return copy.deepcopy(self)
 
   def tick(self):
     self.clock += self.tickinterval
