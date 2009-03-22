@@ -68,7 +68,7 @@ def renderShip(ship):
         for i in range(0, 360, 36):
           glVertex2f(sin(i / 180. * pi) * 2, cos(i / 180. * pi) * 2)
 
-  tryfind = [c for c in main.clients.values() if c.shipid == ship.id]
+  tryfind = [c for c in main.clients.values() if c.shipid == ship.id and c.remote]
   if tryfind:
     glEnable(GL_TEXTURE_2D)
     if tryfind[0] not in shipflags:

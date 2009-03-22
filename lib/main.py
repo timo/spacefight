@@ -71,6 +71,7 @@ class Client():
     self.shipid = None
     self.name = ""
     self.socket = None
+    self.remote = True
 
 def rungame():
   global clients
@@ -114,6 +115,12 @@ def rungame():
     gs.spawn(planet)
 
     myshipid = localplayer.id
+
+    myself = Client()
+    myself.name = gethostname()
+    myself.shipid = myshipid
+    myself.remote = False
+    clients[("127.0.0.1", int(port))] = myself
 
   elif mode == "c":
     conn = socket(AF_INET, SOCK_DGRAM)
@@ -279,7 +286,8 @@ def rungame():
         msg = TYPE_STATE + gsh[-1].serialize()
         for a, c in clients.items():
           try:
-            c.socket.sendto(msg, a)
+            if c.remote:
+              c.socket.sendto(msg, a)
           except Exception, e:
             raise
 
@@ -300,10 +308,8 @@ def rungame():
                   nc = Client()
                   chunk, data = data[:struct.calcsize("i32s")], data[struct.calcsize("i32s"):]
                   nc.shipid, nc.name = struct.unpack("i32s", chunk)
-                  if nc.shipid != myshipid:
-                    clients[nc.shipid] = nc
-
-                print clients
+                  nc.remote = nc.shipid != myshipid
+                  clients[nc.shipid] = nc
 
           except error:
             pass
