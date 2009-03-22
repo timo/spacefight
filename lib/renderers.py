@@ -56,7 +56,7 @@ def renderPlanet(pla):
   with glPrimitive(GL_POLYGON):
     glColor(0, 0, 0.7)
     for i in range(0, 360, 36):
-      glVertex2f(sin(i / 180 * pi) * pla.size, cos(i / 180 * pi) * pla.size)
+      glVertex2f(sin(i / 180. * pi) * pla.size, cos(i / 180. * pi) * pla.size)
 
 methodMap = {gamestate.ShipState: renderShip,
              gamestate.BulletState: renderBullet,

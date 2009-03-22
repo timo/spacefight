@@ -44,7 +44,7 @@ class GameState:
         obj = BulletState()
       elif type == "ps":
         obj = PlanetState()
-      
+
       objlen = struct.calcsize(obj.stateformat)
       objdat, data = data[:objlen], data[objlen:]
 
@@ -186,7 +186,7 @@ class PlanetState(StateObject):
     StateObject.__init__(self)
 
     self.position = [0, 0]
-    self.size = 10
+    self.size = 6
     self.team = 0
 
     self.state = None
