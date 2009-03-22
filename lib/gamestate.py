@@ -277,7 +277,7 @@ class BulletState(StateObject):
 
 class PlanetState(StateObject):
   typename = "ps"
-  mass = 20
+  mass = 30
   def __init__(self, data = None):
     StateObject.__init__(self)
 
