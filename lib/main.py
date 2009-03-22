@@ -57,6 +57,8 @@ def rungame():
 
   tickinterval = 50
 
+  shipowners = {}
+
   try:
     mode = argv[1]
     if mode == "s":
@@ -84,7 +86,8 @@ def rungame():
     print data
     conn = socket(AF_INET, SOCK_DGRAM)
     conn.connect(data[1])
-    
+    otheraddress = data[1]
+
     conn.send("tickinterval:" + str(tickinterval))
 
     print "awaiting player ship."
@@ -108,6 +111,7 @@ def rungame():
     conn.send(gs.serialize())
   
     othershipid = remoteship.id
+    shipowners[otheraddress] = othershipid
 
   elif mode == "c":
     conn = socket(AF_INET, SOCK_DGRAM)
@@ -152,6 +156,8 @@ def rungame():
 
   myshipid = localplayer.id
 
+  gsh = StateHistory(gs)
+
   # yay! play the game!
   
   # init all stuff
@@ -165,10 +171,10 @@ def rungame():
   catchUpAccum = 0
 
   def sendCmd(cmd):
-    conn.send(struct.pack("ic", gs.clock, cmd))
-
-  if mode == "s":
-    gshist = []
+    if mode == "c":
+      conn.send(struct.pack("ic", gsh[-1].clock, cmd))
+    else:
+      gsh.inject(myshipid, cmd)
 
   while running:
     timer.startFrame()
@@ -182,25 +188,13 @@ def rungame():
 
     kp = pygame.key.get_pressed()
     if kp[K_LEFT]:
-      if mode == "s":
-        localplayer.turning = -1
-      else:
-        sendCmd("l")
+      sendCmd("l")
     if kp[K_RIGHT]:
-      if mode == "s":
-        localplayer.turning = 1
-      else:
-       sendCmd("r")
+      sendCmd("r")
     if kp[K_UP]:
-      if mode == "s":
-        localplayer.thrust = 1
-      else:
-        sendCmd("t")
+      sendCmd("t")
     if kp[K_SPACE]:
-      if mode == "s":
-        localplayer.firing = True
-      else:
-        sendCmd("f")
+      sendCmd("f")
 
     catchUpAccum += timer.catchUp
     if catchUpAccum < 2 or mode == "s":
@@ -209,7 +203,7 @@ def rungame():
         # do stuff
         glTranslatef(25 - localplayer.position[0], 18.5 - localplayer.position[1], 0)
         renderers.renderGameGrid(localplayer)
-        renderers.renderWholeState(gs)
+        renderers.renderWholeState(gsh[-1])
 
       with glIdentityMatrix():
         glTranslatef(5, 5, 0)
@@ -223,47 +217,15 @@ def rungame():
           while True:
             msg, sender = conn.recvfrom(4096)
             clk, cmd = struct.unpack("ic", msg)
-            # find the matching gs object in the past
-            found = None
-            if clk != gs.clock:
-              found = 0
-              for i in range(len(gshist)):
-                if gshist[i].clock == clk:
-                  found = i
 
-              rship = gshist[found].getById(othershipid)
-            else:
-              rship = gs.getById(othershipid)
+            gsh.inject(shipowners[sender], cmd, clk)
 
-            if cmd == "l":
-              rship.turning = -1
-            elif cmd == "r":
-              rship.turning = 1
-            elif cmd == "t":
-              rship.thrust = 1
-            elif cmd == "f":
-              rship.firing = True
-            else:
-              print "gor unknown message:", control.__repr__()
-
-            if found is not None:
-              for i in range(found + 1, len(gshist)):
-                gshist[i] = gshist[i-1].copy()
-                gshist[i].tick()
-
-              gs = gshist[-1].copy()
-              gs.tick()
         except error:
           pass
 
-        if len(gshist) < 20:
-          gshist.append(gs.copy())
-        else:
-          gshist = gshist[1:] + [gs.copy()]
+        gsh.apply()
+        conn.send(gsh[-1].serialize())
 
-        gs.tick()
-        localplayer = gs.getById(myshipid)
-        conn.send(gs.serialize())
       elif mode == "c":
         gsdat = ""
         while not gsdat:
@@ -279,8 +241,8 @@ def rungame():
           except error:
             last = True
 
-        gs.deserialize(gsdat)
-        localplayer = gs.getById(myshipid)
+        gsh[-1].deserialize(gsdat)
+        localplayer = gsh[-1].getById(myshipid)
 
     if catchUpAccum > 2:
       catchUpAccum = 0

@@ -93,6 +93,10 @@ class GameState:
           a.collide(b, dv)
           b.collide(a, dv)
 
+  def control(self, commands):
+    for id, cmd in commands:
+      self.getById(id).command(cmd)
+
 class StateObject(object):
   typename = "ab"#stract
   mass = 0
@@ -132,6 +136,9 @@ class StateObject(object):
     for k, v in zip(self.statevars, vals):
       setattr(self, k, v)
     self.post_deserialize()
+
+  def command(self, cmd):
+    pass
 
 class ShipState(StateObject):
   typename = "sp"
@@ -217,6 +224,12 @@ class ShipState(StateObject):
         self.speed[1] += vec[1]
         self.hitShield()
 
+  def command(self, cmd):
+    if   cmd == "l": self.turning = -1
+    elif cmd == "r": self.turning = 1
+    elif cmd == "t": self.thrust = 1
+    elif cmd == "f": self.firing = True
+
 class BulletState(StateObject):
   typename = "bu"
   mass = -0.5
@@ -283,3 +296,44 @@ class PlanetState(StateObject):
 
   def post_deserialize(self):
     self.position = [self.x, self.y]
+
+class StateHistory:
+  def __init__(self, initialState):
+    self.gsh = [initialState]
+    self.inputs = [[]]
+    self.maxstates = 20
+    self.firstDirty = 0
+ 
+  def __getitem__(self, i):
+    return self.gsh.__getitem__(i)
+
+  def inject(self, id, command, clock = None):
+    if clock:
+      found = 0
+      for i in range(len(self.gsh)):
+        if self.gsh[i].clock == clock:
+          found = i
+          break
+    else:
+      found = len(self.gsh) - 1
+
+    self.firstDirty = found - 1
+    self.inputs[found].append((id, command))
+
+  def apply(self):
+    for i in range(self.firstDirty + 1, len(self.gsh)):
+      self.gsh[i] = self.gsh[i - 1].copy()
+      self.gsh[i].control(self.inputs[i - 1])
+      self.gsh[i].tick()
+
+    self.firstDirty = len(self.gsh)
+
+    if len(self.gsh) < self.maxstates:
+      self.gsh.append(self.gsh[-1].copy())
+      self.inputs.append([])
+    else:
+      self.gsh = self.gsh[1:] + [self.gsh[-1].copy()]
+      self.inputs = self.inputs[1:] + [[]]
+
+    self.gsh[-1].control(self.inputs[-2])
+    self.gsh[-1].tick()
