@@ -10,11 +10,12 @@ from time import sleep
 from random import random
 from math import pi, sin, cos
 from socket import *
+from sys import argv
 
 from timing import timer
 from gamestate import *
 import renderers
-from sys import argv
+from font import Text
 
 # don't initialise sound stuff plzkthxbai
 pygame.mixer = None
@@ -188,6 +189,10 @@ def rungame():
 
   catchUpAccum = 0
 
+  glEnable(GL_TEXTURE_2D)
+  playerlist = []
+  glDisable(GL_TEXTURE_2D)
+
   def sendCmd(cmd):
     if mode == "c":
       msg = struct.pack("cic", TYPE_INPUT, gsh[-1].clock, cmd)
@@ -225,9 +230,14 @@ def rungame():
         renderers.renderWholeState(gsh[-1])
 
       with glIdentityMatrix():
-        glTranslatef(5, 5, 0)
         glScalef(1./32, 1./32, 1)
         # do gui stuff here
+        with glMatrix():
+          glScale(3, 3, 1)
+          for pli in playerlist:
+            pli.draw()
+            glTranslate(0, 16, 0)
+        glDisable(GL_TEXTURE_2D)
 
       pygame.display.flip()
 
@@ -275,7 +285,12 @@ def rungame():
                   myself.shipid = myshipid
                   msg = TYPE_INFO + INFO_PLAYERS + "".join(struct.pack("i32s", c.shipid, c.name) for c in clients.values() + [myself])
                   for dest in clients.values():
-                    dest.socket.send(msg)
+                    if dest.remote:
+                      dest.socket.send(msg)
+                
+                  glEnable(GL_TEXTURE_2D)
+                  playerlist = [Text("Players:")] + [Text(c.name) for c in clients.values()]
+                  glDisable(GL_TEXTURE_2D)
 
         except error, e:
           if e.args[0] != 11:
@@ -310,6 +325,10 @@ def rungame():
                   nc.shipid, nc.name = struct.unpack("i32s", chunk)
                   nc.remote = nc.shipid != myshipid
                   clients[nc.shipid] = nc
+
+                glEnable(GL_TEXTURE_2D)
+                playerlist = [Text("Players:")] + [Text(c.name) for c in clients.values()]
+                glDisable(GL_TEXTURE_2D)
 
           except error:
             pass
