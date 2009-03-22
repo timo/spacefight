@@ -21,6 +21,8 @@ class GameState:
       if o.die:
         self.objects.remove(o)
 
+    self.doGravity(self.tickinterval)
+
   def spawn(self, object):
     object.id = self.nextNewId
     self.nextNewId += 1
@@ -59,8 +61,23 @@ class GameState:
   def getById(self, id):
     return [obj for obj in self.objects if obj.id == id][0]
 
+  def doGravity(self, dt):
+    for a in self.objects:
+      for b in self.objects:
+        if b == a: continue
+
+        dv = [a.position[i] - b.position[i] for i in range(2)]
+        lns = dv[0] * dv[0] + dv[1] * dv[1]
+        con = -0.00001 * a.mass * b.mass / lns
+
+        a.speed[0] += con * dv[0] * dt
+        a.speed[1] += con * dv[1] * dt
+        b.speed[0] -= con * dv[0] * dt
+        b.speed[1] -= con * dv[1] * dt
+
 class StateObject(object):
   typename = "ab"#stract
+  mass = 0
   def __init__(self):
     self.state = None
     self.statevars = []
@@ -97,6 +114,7 @@ class StateObject(object):
 
 class ShipState(StateObject):
   typename = "sp"
+  mass = 1
   def __init__(self, data = None):
     StateObject.__init__(self)
     self.color = (1, 0, 0)
@@ -151,6 +169,7 @@ class ShipState(StateObject):
 
 class BulletState(StateObject):
   typename = "bu"
+  mass = 0
   def __init__(self, data = None):
     StateObject.__init__(self)
     self.position = [0, 0]
@@ -182,10 +201,12 @@ class BulletState(StateObject):
 
 class PlanetState(StateObject):
   typename = "ps"
+  mass = 100
   def __init__(self, data = None):
     StateObject.__init__(self)
 
     self.position = [0, 0]
+    self.speed = [0, 0] 
     self.size = 6
     self.team = 0
 
