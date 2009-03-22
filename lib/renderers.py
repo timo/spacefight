@@ -58,7 +58,7 @@ def renderShip(ship):
   if ship.shield < ship.maxShield and ship.shield > 0:
     amount = 1.0 * ship.shield / ship.maxShield
     with glPrimitive(GL_LINE_LOOP):
-      glColor(1.0 - amount, amount, 0, sqrt(1 + log((amount + 0.1) * 0.9, 10) / 2.5))
+      glColor(1.0 - amount, amount, 0, amount)
       for i in range(0, 360, 36):
         glVertex2f(sin(i / 180. * pi) * 2, cos(i / 180. * pi) * 2)
 
