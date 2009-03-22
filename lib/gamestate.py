@@ -22,6 +22,7 @@ class GameState:
         self.objects.remove(o)
 
     self.doGravity(self.tickinterval)
+    self.doCollisions(self.tickinterval)
 
   def spawn(self, object):
     object.id = self.nextNewId
@@ -68,12 +69,24 @@ class GameState:
 
         dv = [a.position[i] - b.position[i] for i in range(2)]
         lns = dv[0] * dv[0] + dv[1] * dv[1]
-        con = -0.00001 * a.mass * b.mass / lns
+        con = -0.000001 * a.mass * b.mass / lns
 
         a.speed[0] += con * dv[0] * dt
         a.speed[1] += con * dv[1] * dt
         b.speed[0] -= con * dv[0] * dt
         b.speed[1] -= con * dv[1] * dt
+
+  def doCollisions(self, dt):
+    for a in self.objects:
+      for b in self.objects:
+        if a == b: continue
+
+        dv = [a.position[i] - b.position[i] for i in range(2)]
+        lns = dv[0] * dv[0] + dv[1] * dv[1]
+
+        if lns < (a.size + b.size) ** 2:
+          a.collide(b, dv)
+          b.collide(a, dv)
 
 class StateObject(object):
   typename = "ab"#stract
@@ -102,6 +115,9 @@ class StateObject(object):
     self.pre_serialize()
     return struct.pack(self.stateformat, *[getattr(self, varname) for varname in self.statevars])
 
+  def collide(self, other, vec):
+    pass
+
   def deserialize(self, data):
     try:
       vals = struct.unpack(self.stateformat, data)
@@ -127,9 +143,13 @@ class ShipState(StateObject):
     self.reloadInterval = 1000
     self.firing = 0
     self.team = 0
+    self.size = 2
+    self.maxShield = 7500
+    self.shield = 7500
+    self.hull = 10000
 
-    self.statevars = ["id", "r", "g", "b", "x", "y", "alignment", "timeToReload", "reloadInterval", "team"]
-    self.stateformat = "i8f1b"
+    self.statevars = ["id", "r", "g", "b", "x", "y", "alignment", "timeToReload", "reloadInterval", "maxShield", "shield", "hull", "team"]
+    self.stateformat = "i6f5ib"
 
     if data:
       self.deserialize(data)
@@ -167,13 +187,30 @@ class ShipState(StateObject):
       self.timeToReload = self.reloadInterval
       self.firing = False
 
+    if self.shield < self.maxShield:
+      self.shield += dt
+    else:
+      self.shield = self.maxShield
+
+  def hitShield(self, damage = 5000):
+    if self.shield > damage:
+      self.shield, damage = self.shield - damage, 0
+    self.hull -= damage
+
+  def collide(self, other, vec):
+    if other.typename == "bu":
+      self.speed[0] += vec[0]
+      self.speed[1] += vec[1]
+      self.hitShield()
+
 class BulletState(StateObject):
   typename = "bu"
-  mass = 0
+  mass = 0.1
   def __init__(self, data = None):
     StateObject.__init__(self)
     self.position = [0, 0]
     self.speed = [0, 0]
+    self.size = 1
     self.team = 0
     self.lifetime = 10000
     self.state = None
@@ -201,7 +238,7 @@ class BulletState(StateObject):
 
 class PlanetState(StateObject):
   typename = "ps"
-  mass = 100
+  mass = 50
   def __init__(self, data = None):
     StateObject.__init__(self)
 

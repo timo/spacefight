@@ -43,6 +43,13 @@ def renderShip(ship):
     glVertex2f(-0.5, 0)
     glVertex2f(-1, -0.5)
 
+  if ship.shield < ship.maxShield:
+    amount = 1.0 * ship.shield / ship.maxShield
+    with glPrimitive(GL_LINE_LOOP):
+      glColor(1.0 - amount, amount, 0, amount ** 4)
+      for i in range(0, 360, 36):
+        glVertex2f(sin(i / 180. * pi) * 2, cos(i / 180. * pi) * 2)
+
 def renderBullet(bul):
   glTranslate(*bul.position + [0])
   glScale(0.2, 0.2, 0.2)
