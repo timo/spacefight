@@ -145,7 +145,7 @@ class ShipState(StateObject):
   mass = 1
   def __init__(self, data = None):
     StateObject.__init__(self)
-    self.color = (1, 0, 0)
+    self.color = (random(), random(), random())
     self.position = [0, 0]
     self.speed = [0, 0]        # in units per milisecond
     self.alignment = 0         # from 0 to 1
