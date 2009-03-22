@@ -165,3 +165,26 @@ class BulletState(StateObject):
     self.lifetime -= dt
     if self.lifetime <= 0:
       self.die = True
+
+class PlanetState(StateObject):
+  typename = "ps"
+  def __init__(self, data = None):
+    StateObject.__init__(self)
+
+    self.position = [0, 0]
+    self.size = 10
+    self.team = 0
+
+    self.state = None
+
+    self.statevars = ["id", "x", "y", "s", "team"]
+    self.stateformat = "i3fb"
+
+    if data:
+      self.deserialize(data)
+
+  def pre_serialize(self):
+    self.x, self.y = self.position
+
+  def post_deserialize(self):
+    self.position = [self.x, self.y]
