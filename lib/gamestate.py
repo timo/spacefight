@@ -1,5 +1,5 @@
 import struct
-from math import pi, sin, cos
+from math import pi, sin, cos, sqrt
 from random import random
 import copy
 
@@ -216,8 +216,10 @@ class ShipState(StateObject):
   def collide(self, other, vec):
     if other.typename == "bu":
       if other.team != self.team:
-        self.speed[0] += vec[0]
-        self.speed[1] += vec[1]
+        if vec[0] != 0 and vec[1] != 0:
+          len = sqrt(vec[0] * vec[0] + vec[1] * vec[1])
+          self.speed[0] += vec[0] / len
+          self.speed[1] += vec[1] / len
         self.hitShield()
 
   def command(self, cmd):
