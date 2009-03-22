@@ -4,6 +4,12 @@ from OpenGL.GL import *
 from with_opengl import glPrimitive, glMatrix
 from math import pi, sin, cos, sqrt, log
 
+def frange(start, end, step):
+  curr = start
+  while curr < end:
+    yield curr
+    curr += step
+
 def renderGameGrid(player):
   with glPrimitive(GL_LINES):
     for x in range(int(player.position[0] - 30), int(player.position[0] + 30), 1):
@@ -43,7 +49,11 @@ def renderShip(ship):
     glVertex2f(-0.5, 0)
     glVertex2f(-1, -0.5)
 
-  if ship.shield < ship.maxShield:
+  with glPrimitive(GL_LINE_LOOP):
+    for i in frange(0, ship.hull / 10000., 0.05):
+      glVertex2f(sin(i * 2 * pi) * 2.1, cos(i * 2 * pi) * 2.1)
+
+  if ship.shield < ship.maxShield and ship.shield > 0:
     amount = 1.0 * ship.shield / ship.maxShield
     with glPrimitive(GL_LINE_LOOP):
       glColor(1.0 - amount, amount, 0, sqrt(1 + log((amount + 0.1) * 0.9, 10) / 2.5))
