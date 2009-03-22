@@ -206,16 +206,12 @@ class ShipState(StateObject):
       self.shield = self.maxShield
 
   def hitShield(self, damage = 1000):
-    print "absorbing", damage, "damage on a shield with", self.shield, "energy and a hull of", self.hull
     if self.shield < damage:
       self.shield, damage = 0, damage - self.shield
-      print "shields did not suffice. damage:", damage, "shields:", self.shield
     else:
       self.shield, damage = self.shield - damage, 0
-      print "shields sufficed. damage:", damage, "shields:", self.shield
 
     self.hull -= damage
-    print "hull:", self.hull
 
   def collide(self, other, vec):
     if other.typename == "bu":

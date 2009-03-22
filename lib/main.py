@@ -224,6 +224,7 @@ def rungame():
           pass
 
         gsh.apply()
+        localplayer = gsh[-1].getById(myshipid)
         conn.send(gsh[-1].serialize())
 
       elif mode == "c":
