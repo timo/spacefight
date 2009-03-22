@@ -9,6 +9,7 @@ def frange(start, end, step):
   while curr < end:
     yield curr
     curr += step
+  yield end
 
 def renderGameGrid(player):
   with glPrimitive(GL_LINES):
@@ -49,9 +50,10 @@ def renderShip(ship):
     glVertex2f(-0.5, 0)
     glVertex2f(-1, -0.5)
 
-  with glPrimitive(GL_LINE_LOOP):
+  with glPrimitive(GL_LINE_STRIP):
     for i in frange(0, ship.hull / 10000., 0.05):
-      glVertex2f(sin(i * 2 * pi) * 2.1, cos(i * 2 * pi) * 2.1)
+      glColor(i, 1.0 - i, 0, 0.5)
+      glVertex2f(sin(i * 2 * pi) * 2.2, cos(i * 2 * pi) * 2.2)
 
   if ship.shield < ship.maxShield and ship.shield > 0:
     amount = 1.0 * ship.shield / ship.maxShield
