@@ -22,6 +22,15 @@ pygame.mixer = None
 screen = None
 screensize = (800, 600)
 
+TYPE_STATE = "g"
+TYPE_SHAKE = "c"
+TYPE_CHAT  = "m"
+TYPE_INPUT = "i"
+
+SHAKE_HELLO  = "h"
+SHAKE_SHIP   = "s"
+SHAKE_YOURID = "i"
+
 def setres((width, height)):
   """res = tuple
 sets the resolution and sets up the projection matrix"""
@@ -51,13 +60,20 @@ def init():
   glEnable(GL_TEXTURE_2D)
   glClearColor(0.1,0.1,0.0,1.0)
 
+class Client():
+  def __init__(self):
+    self.shipid = None
+    self.name = ""
+    self.socket = None
+
 def rungame():
 
   # try to connect to the other party
 
   tickinterval = 50
 
-  shipowners = {}
+  clients = {}
+  nextTeam = 1
 
   try:
     mode = argv[1]
@@ -81,37 +97,18 @@ def rungame():
   if mode == "s":
     server = socket(AF_INET, SOCK_DGRAM)
     server.bind(("", int(port)))
-    print "now waiting for client"
-    data = server.recvfrom(4096)
-    print data
-    conn = socket(AF_INET, SOCK_DGRAM)
-    conn.connect(data[1])
-    otheraddress = data[1]
-
-    conn.send("tickinterval:" + str(tickinterval))
-
-    print "awaiting player ship."
-
-    shipdata = conn.recv(4096)
-
-    remoteship = ShipState(shipdata)
-    remoteship.team = 1
-
+    
     gs = GameState()
     localplayer = ShipState()
-    localplayer.position = [0, 0]
+    localplayer.position = [random() * 100 - 50, random() * 100 - 50]
     localplayer.alignment = random()
     localplayer.team = 0
     gs.spawn(localplayer)
-    gs.spawn(remoteship)
     planet = PlanetState()
     planet.position = [random() * 200 - 100, random() * 200 - 100]
     gs.spawn(planet)
-    print "transmitting state"
-    conn.send(gs.serialize())
-  
-    othershipid = remoteship.id
-    shipowners[otheraddress] = othershipid
+
+    myshipid = localplayer.id
 
   elif mode == "c":
     conn = socket(AF_INET, SOCK_DGRAM)
@@ -128,11 +125,11 @@ def rungame():
     data = ""
     while not data:
       try:
-        conn.sendto("HELLO %s", (addr, int(port)))
+        conn.sendto(struct.pack("cc32s", TYPE_SHAKE, SHAKE_HELLO, gethostname()), (addr, int(port)))
         print "hello sent."
         data = conn.recvfrom(4096)
       except error:
-        sleep(5)
+        pass
 
     print data[0], "gotten as response"
     tickinterval = int(data[0].split(":")[1])
@@ -143,18 +140,26 @@ def rungame():
     plp = ShipState() # proposed local player state
     plp.position = [random() * 10, random() * 10]
     plp.alignment = random()
-    plp.color = (0, 1, 0)
-    conn.send(plp.serialize())
+    conn.send(TYPE_SHAKE + SHAKE_SHIP + plp.serialize())
 
     print "awaiting state response..."
 
-    gs = GameState(conn.recv(4096))
-    localplayer = gs.objects[1]
-  
-  conn.setblocking(0)
-  gs.tickinterval = tickinterval
+    shipid = conn.recv(4096)
+    if shipid[1] == TYPE_SHAKE and shipid[2] == TYPE_YOURID:
+      myshipid = struct.unpack("i", shipid[2:])
+    else:
+      print "oops. what?"
+      print shipid
+      sys.exit()
 
-  myshipid = localplayer.id
+    gs = GameState()
+    localplayer = ShipState()
+
+  try:
+    conn.setblocking(0)
+  except:
+    server.setblocking(0)
+  gs.tickinterval = tickinterval
 
   gsh = StateHistory(gs)
 
@@ -172,7 +177,7 @@ def rungame():
 
   def sendCmd(cmd):
     if mode == "c":
-      conn.send(struct.pack("ic", gsh[-1].clock, cmd))
+      conn.send(struct.pack("cic", TYPE_INPUT, gsh[-1].clock, cmd))
     else:
       gsh.inject(myshipid, cmd)
 
@@ -215,23 +220,52 @@ def rungame():
       if mode == "s":
         try:
           while True:
-            msg, sender = conn.recvfrom(4096)
-            clk, cmd = struct.unpack("ic", msg)
+            msg, sender = server.recvfrom(4096)
+            type = msg[0]
+            if type == TYPE_INPUT:
+              clk, cmd = struct.unpack("ic", msg[1:])
 
-            gsh.inject(shipowners[sender], cmd, clk)
+              gsh.inject(clients[sender].shipid, cmd, clk)
+            
+            elif type == TYPE_SHAKE:
+              # HANDSHAKE CODE BEGIN
+              if sender in clients:
+                if msg[1] == SHAKE_SHIP:
+                  remoteship = ShipState(msg[2:])
+                  remoteship.team = nextTeam
+                  nextTeam += 1
+                  gsh[-1].spawn(remoteship)
+                  clients[sender].shipid = remoteship.id
+                  clients[sender].send(TYPE_SHAKE + TYPE_YOURID + struct.pack("i", clients[sender].shipid))
+
+              else:
+                if msg[1] == SHAKE_HELLO:
+                  nc = Client()
+                  client.name = msg[2:]
+                  nc.socket = socket(AF_INET, SOCK_DGRAM)
+                  nc.socket.connect(sender)
+
+                  nc.socket.send(TYPE_SHAKE + "tickinterval:" + str(tickinterval))
+                  clients[sender] = nc
 
         except error:
           pass
 
         gsh.apply()
         localplayer = gsh[-1].getById(myshipid)
-        conn.send(gsh[-1].serialize())
+        msg = TYPE_STATE + gsh[-1].serialize()
+        for c in clients:
+          c.socket.send(msg)
 
       elif mode == "c":
         gsdat = ""
         while not gsdat:
           try:
-            gsdat = conn.recv(4096)
+            data = conn.recv(4096)
+            if data[0] == "g":
+              gsdat = data
+            elif data[0] == "m":
+              print data[1:]
           except error:
             pass
 
