@@ -34,6 +34,9 @@ SHAKE_YOURID = "i"
 
 INFO_PLAYERS = "p"
 
+clients = {} # in server mode this is a dict of (addr, port) to Client
+             # in client mode this is a dict of shipid to Client
+
 def setres((width, height)):
   """res = tuple
 sets the resolution and sets up the projection matrix"""
@@ -70,13 +73,11 @@ class Client():
     self.socket = None
 
 def rungame():
-
+  global clients
   # try to connect to the other party
 
   tickinterval = 50
 
-  clients = {} # in server mode this is a dict of (addr, port) to Client
-               # in client mode this is a dict of shipid to Client
   nextTeam = 1
 
   try:
@@ -262,7 +263,10 @@ def rungame():
                   print "sent."
 
                   print "distributing a playerlist"
-                  msg = TYPE_INFO + INFO_PLAYERS + "".join(struct.pack("i32s", c.shipid, c.name) for c in clients.values())
+                  myself = Client()
+                  myself.name = gethostname()
+                  myself.shipid = myshipid
+                  msg = TYPE_INFO + INFO_PLAYERS + "".join(struct.pack("i32s", c.shipid, c.name) for c in clients.values() + [myself])
                   for dest in clients.values():
                     dest.socket.send(msg)
 
@@ -296,7 +300,8 @@ def rungame():
                   nc = Client()
                   chunk, data = data[:struct.calcsize("i32s")], data[struct.calcsize("i32s"):]
                   nc.shipid, nc.name = struct.unpack("i32s", chunk)
-                  clients[nc.shipid] = nc
+                  if nc.shipid != myshipid:
+                    clients[nc.shipid] = nc
 
                 print clients
 

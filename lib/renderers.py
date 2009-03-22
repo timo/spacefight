@@ -4,6 +4,9 @@ from OpenGL.GL import *
 from with_opengl import glPrimitive, glMatrix
 from math import pi, sin, cos, sqrt, log
 
+import main
+from font import Text
+
 def frange(start, end, step):
   curr = start
   while curr < end:
@@ -40,27 +43,43 @@ def renderWholeState(state):
         with glMatrix():
           met(obj)
 
+shipflags = {}
+
 def renderShip(ship):
   glTranslate(*ship.position + [0])
-  glRotatef(ship.alignment * 360, 0, 0, 1)
-  with glPrimitive(GL_POLYGON):
-    glColor(*ship.color)
-    glVertex2f(1, 0)
-    glVertex2f(-1, 0.5)
-    glVertex2f(-0.5, 0)
-    glVertex2f(-1, -0.5)
+  with glMatrix():
+    glRotatef(ship.alignment * 360, 0, 0, 1)
+    with glPrimitive(GL_POLYGON):
+      glColor(*ship.color)
+      glVertex2f(1, 0)
+      glVertex2f(-1, 0.5)
+      glVertex2f(-0.5, 0)
+      glVertex2f(-1, -0.5)
 
-  with glPrimitive(GL_LINE_STRIP):
-    for i in frange(0, ship.hull / 10000., 0.05):
-      glColor(i, 1.0 - i, 0, 0.5)
-      glVertex2f(sin(i * 2 * pi) * 2.2, cos(i * 2 * pi) * 2.2)
+    with glPrimitive(GL_LINE_STRIP):
+      for i in frange(0, ship.hull / 10000., 0.05):
+        glColor(i, 1.0 - i, 0, 0.5)
+        glVertex2f(sin(i * 2 * pi) * 2.2, cos(i * 2 * pi) * 2.2)
 
-  if ship.shield < ship.maxShield and ship.shield > 0:
-    amount = 1.0 * ship.shield / ship.maxShield
-    with glPrimitive(GL_LINE_LOOP):
-      glColor(1.0 - amount, amount, 0, amount)
-      for i in range(0, 360, 36):
-        glVertex2f(sin(i / 180. * pi) * 2, cos(i / 180. * pi) * 2)
+    if ship.shield < ship.maxShield and ship.shield > 0:
+      amount = 1.0 * ship.shield / ship.maxShield
+      with glPrimitive(GL_LINE_LOOP):
+        glColor(1.0 - amount, amount, 0, amount)
+        for i in range(0, 360, 36):
+          glVertex2f(sin(i / 180. * pi) * 2, cos(i / 180. * pi) * 2)
+
+  tryfind = [c for c in main.clients.values() if c.shipid == ship.id]
+  if tryfind:
+    glEnable(GL_TEXTURE_2D)
+    if tryfind[0] not in shipflags:
+      txt = Text(tryfind[0].name)
+      shipflags[tryfind[0]] = txt
+    else:
+      txt = shipflags[tryfind[0]]
+    glTranslate(1.5, 0, 0)
+    glScale(0.05,0.05,1)
+    txt.draw()
+    glDisable(GL_TEXTURE_2D)
 
 def renderBullet(bul):
   glTranslate(*bul.position + [0])

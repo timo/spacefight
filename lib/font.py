@@ -1,3 +1,4 @@
+from __future__ import with_statement
 from OpenGL.GL import *
 from with_opengl import glPrimitive
 import pygame
