@@ -51,5 +51,13 @@ def renderBullet(bul):
     for posi in [0, 0.4, 0.8, 0.2, 0.6]:
       glVertex2f(sin(posi * 2 * pi), cos(posi * 2 * pi))
 
+def renderPlanet(pla):
+  glTranslate(*pla.position + [0])
+  with glPrimitive(GL_POLYGON):
+    glColor(0, 0, 0.7)
+    for i in range(0, 360, 36):
+      glVertex2f(sin(i / 180 * pi) * pla.size, cos(i / 180 * pi) * pla.size)
+
 methodMap = {gamestate.ShipState: renderShip,
-             gamestate.BulletState: renderBullet}
+             gamestate.BulletState: renderBullet,
+             gamestate.PlanetState: renderPlanet}
