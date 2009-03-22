@@ -51,6 +51,8 @@ class GameState:
         obj = BulletState()
       elif type == "ps":
         obj = PlanetState()
+      else:
+        print "got unknown type:", type
 
       objlen = struct.calcsize(obj.stateformat)
       objdat, data = data[:objlen], data[objlen:]
@@ -165,6 +167,9 @@ class ShipState(StateObject):
 
     if data:
       self.deserialize(data)
+
+  def __repr__(self):
+    return "<ShipState at %s, team %d, id %d>" % (self.position, self.team, self.id)
 
   def pre_serialize(self):
     self.x, self.y = self.position
