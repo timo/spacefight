@@ -89,20 +89,18 @@ class ShipState(StateObject):
     self.firing = 0
     self.team = 0
 
-    self.statevars = ["r", "g", "b", "x", "y", "sx", "sy", "alignment", "timeToReload", "reloadInterval", "team"]
-    self.stateformat = "10f1b"
+    self.statevars = ["r", "g", "b", "x", "y", "alignment", "timeToReload", "reloadInterval", "team"]
+    self.stateformat = "8f1b"
 
     if data:
       self.deserialize(data)
 
   def pre_serialize(self):
     self.x, self.y = self.position
-    self.sx, self.sy = self.speed
     self.r, self.g, self.b = self.color
 
   def post_deserialize(self):
     self.position = [self.x, self.y]
-    self.speed = [self.sx, self.sy]
     self.color = (self.r, self.g, self.b)
 
   def tick(self, dt):

@@ -10,7 +10,7 @@ def renderGameGrid(player):
       if x % 10 == 0:
         glColor(0.3, 0.3, 0, 1)
       elif x % 10 == 5:
-        glColor(0.2, 0.2, 0, 1)
+        glColor(0.15, 0.15, 0, 1)
       else:
         glColor(0.05, 0.05, 0, 1)
       glVertex2f(x, -100)
@@ -19,7 +19,7 @@ def renderGameGrid(player):
       if y % 10 == 0:
         glColor(0.3, 0.3, 0)
       elif y % 10 == 5:
-        glColor(0.2, 0.2, 0)
+        glColor(0.15, 0.15, 0)
       else:
         glColor(0.05, 0.05, 0)
       glVertex2f(-100, y)
