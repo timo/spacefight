@@ -135,7 +135,7 @@ def rungame():
     tickinterval = int(data[0].split(":")[1])
     print "tickinterval is now", tickinterval
 
-    conn.connect(data[1])
+    conn.connect((addr, int(port)))
 
     plp = ShipState() # proposed local player state
     plp.position = [random() * 10, random() * 10]
@@ -144,13 +144,14 @@ def rungame():
 
     print "awaiting state response..."
 
-    shipid = conn.recv(4096)
-    if shipid[1] == TYPE_SHAKE and shipid[2] == TYPE_YOURID:
-      myshipid = struct.unpack("i", shipid[2:])
-    else:
-      print "oops. what?"
-      print shipid
-      sys.exit()
+    myshipid = None
+    while myshipid is None:
+      shipid = conn.recv(4096)
+      if shipid[1] == TYPE_SHAKE and shipid[2] == TYPE_YOURID:
+        myshipid = struct.unpack("i", shipid[2:])
+      else:
+        print "oops. what?"
+        print shipid
 
     gs = GameState()
     localplayer = ShipState()
@@ -221,6 +222,7 @@ def rungame():
         try:
           while True:
             msg, sender = server.recvfrom(4096)
+            print "received:", msg, "from", sender
             type = msg[0]
             if type == TYPE_INPUT:
               clk, cmd = struct.unpack("ic", msg[1:])
@@ -228,9 +230,12 @@ def rungame():
               gsh.inject(clients[sender].shipid, cmd, clk)
             
             elif type == TYPE_SHAKE:
+              print "got a shake message"
               # HANDSHAKE CODE BEGIN
               if sender in clients:
+                print "sender is in clients."
                 if msg[1] == SHAKE_SHIP:
+                  print "got a shake_ship."
                   remoteship = ShipState(msg[2:])
                   remoteship.team = nextTeam
                   nextTeam += 1
@@ -239,22 +244,25 @@ def rungame():
                   clients[sender].send(TYPE_SHAKE + TYPE_YOURID + struct.pack("i", clients[sender].shipid))
 
               else:
+                print "sender is unknown"
                 if msg[1] == SHAKE_HELLO:
+                  print "got a shake_hello"
                   nc = Client()
-                  client.name = msg[2:]
+                  nc.name = msg[2:]
                   nc.socket = socket(AF_INET, SOCK_DGRAM)
                   nc.socket.connect(sender)
 
                   nc.socket.send(TYPE_SHAKE + "tickinterval:" + str(tickinterval))
                   clients[sender] = nc
 
-        except error:
-          pass
+        except error, e:
+          if e.args[0] != 11:
+            raise
 
         gsh.apply()
         localplayer = gsh[-1].getById(myshipid)
         msg = TYPE_STATE + gsh[-1].serialize()
-        for c in clients:
+        for c in clients.values():
           c.socket.send(msg)
 
       elif mode == "c":
