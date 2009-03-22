@@ -26,10 +26,13 @@ TYPE_STATE = "g"
 TYPE_SHAKE = "c"
 TYPE_CHAT  = "m"
 TYPE_INPUT = "i"
+TYPE_INFO  = "n"
 
 SHAKE_HELLO  = "h"
 SHAKE_SHIP   = "s"
 SHAKE_YOURID = "i"
+
+INFO_PLAYERS = "p"
 
 def setres((width, height)):
   """res = tuple
@@ -72,7 +75,8 @@ def rungame():
 
   tickinterval = 50
 
-  clients = {}
+  clients = {} # in server mode this is a dict of (addr, port) to Client
+               # in client mode this is a dict of shipid to Client
   nextTeam = 1
 
   try:
@@ -257,6 +261,10 @@ def rungame():
                   clients[sender].socket.sendto(TYPE_SHAKE + SHAKE_YOURID + struct.pack("i", clients[sender].shipid), sender)
                   print "sent."
 
+                  print "distributing a playerlist"
+                  msg = TYPE_INFO + INFO_PLAYERS + "".join(struct.pack("i32s", c.shipid, c.name) for c in clients.values())
+                  for dest in clients.values():
+                    dest.socket.send(msg)
 
         except error, e:
           if e.args[0] != 11:
@@ -276,10 +284,22 @@ def rungame():
         while not gsdat:
           try:
             data = conn.recv(4096)
-            if data[0] == "g":
+            if data[0] == TYPE_STATE:
               gsdat = data
-            elif data[0] == "m":
+            elif data[0] == TYPE_CHAT:
               print data[1:]
+            elif data[0] == TYPE_INFO:
+              if data[1] == INFO_PLAYERS:
+                clients = {}
+                data = data[2:]
+                while len(data) > 0:
+                  nc = Client()
+                  chunk, data = data[:struct.calcsize("i32s")], data[struct.calcsize("i32s"):]
+                  nc.shipid, nc.name = struct.unpack("i32s", chunk)
+                  clients[nc.shipid] = nc
+
+                print clients
+
           except error:
             pass
 
