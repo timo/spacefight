@@ -193,7 +193,7 @@ class ShipState(StateObject):
     else:
       self.shield = self.maxShield
 
-  def hitShield(self, damage = 2000):
+  def hitShield(self, damage = 1000):
     print "absorbing", damage, "damage on a shield with", self.shield, "energy and a hull of", self.hull
     if self.shield < damage:
       self.shield, damage = 0, damage - self.shield
@@ -214,7 +214,7 @@ class ShipState(StateObject):
 
 class BulletState(StateObject):
   typename = "bu"
-  mass = 0.1
+  mass = -0.5
   def __init__(self, data = None):
     StateObject.__init__(self)
     self.position = [0, 0]
