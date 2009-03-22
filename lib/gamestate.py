@@ -49,6 +49,9 @@ class GameState:
 
       self.objects.append(obj)
 
+  def getById(self, id):
+    return [obj for obj in self.objects if obj.id == id][0]
+
 class StateObject(object):
   typename = "ab"#stract
   def __init__(self):
