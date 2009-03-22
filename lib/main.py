@@ -224,6 +224,7 @@ def rungame():
             msg, sender = conn.recvfrom(4096)
             clk, cmd = struct.unpack("ic", msg)
             # find the matching gs object in the past
+            found = None
             if clk != gs.clock:
               found = 0
               for i in range(len(gshist)):
@@ -232,7 +233,7 @@ def rungame():
 
               print "command is applied at", clk, "which is in position", found, "in the history. our current clock is", gs.clock
 
-              rship = gshist[i].getById(othershipid)
+              rship = gshist[found].getById(othershipid)
             else:
               rship = gs.getById(othershipid)
 
@@ -247,14 +248,13 @@ def rungame():
             else:
               print "gor unknown message:", control.__repr__()
 
-            try:
+            if found is not None:
               for i in range(found + 1, len(gshist)):
                 gshist[i] = gshist[i-1].copy()
                 gshist[i].tick()
 
               gs = gshist[-1].copy()
-            except NameError, e:
-              pass
+              gs.tick()
         except error:
           pass
         if len(gshist) < 20:

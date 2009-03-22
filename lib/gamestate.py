@@ -60,6 +60,7 @@ class GameState:
         print "could not deserialize", odata.__repr__(), "- chunk:", objdat.__repr__()
         raise
 
+      obj.bind(self)
       self.objects.append(obj)
 
   def getById(self, id):
