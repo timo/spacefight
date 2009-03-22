@@ -95,7 +95,7 @@ def rungame():
     print "s is for server mode, c is for client mode."
 
   if mode == "s":
-    server = socket(AF_INET6, SOCK_DGRAM)
+    server = socket(AF_INET, SOCK_DGRAM)
     server.bind(("", int(port)))
     
     gs = GameState()
@@ -111,7 +111,7 @@ def rungame():
     myshipid = localplayer.id
 
   elif mode == "c":
-    conn = socket(AF_INET6, SOCK_DGRAM)
+    conn = socket(AF_INET, SOCK_DGRAM)
     try:
       conn.bind(("", int(cport)))
     except:
@@ -238,7 +238,7 @@ def rungame():
                   print "got a shake_hello"
                   nc = Client()
                   nc.name = msg[2:]
-                  nc.socket = socket(AF_INET6, SOCK_DGRAM)
+                  nc.socket = socket(AF_INET, SOCK_DGRAM)
                   nc.socket.connect(sender)
 
                   nc.socket.send(TYPE_SHAKE + "tickinterval:" + str(tickinterval))
