@@ -183,6 +183,7 @@ class ShipState(StateObject):
       face = scatter([cos(self.alignment * pi * 2) * 0.02, sin(self.alignment * pi * 2) * 0.02], 0.002)
       bul.position = [self.position[0] + face[0], self.position[1] + face[1]]
       bul.speed = face
+      bul.team = self.team
       self.state.spawn(bul)
       self.timeToReload = self.reloadInterval
       self.firing = False
@@ -199,9 +200,10 @@ class ShipState(StateObject):
 
   def collide(self, other, vec):
     if other.typename == "bu":
-      self.speed[0] += vec[0]
-      self.speed[1] += vec[1]
-      self.hitShield()
+      if other.team != self.team:
+        self.speed[0] += vec[0]
+        self.speed[1] += vec[1]
+        self.hitShield()
 
 class BulletState(StateObject):
   typename = "bu"
@@ -237,7 +239,11 @@ class BulletState(StateObject):
       self.die = True
 
   def collide(self, other, vec):
-    self.die = True
+    try:
+      if other.team != self.team:
+        self.die = True
+    except:
+      self.die = True
 
 class PlanetState(StateObject):
   typename = "ps"

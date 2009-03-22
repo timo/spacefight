@@ -92,11 +92,13 @@ def rungame():
     shipdata = conn.recv(4096)
 
     remoteship = ShipState(shipdata)
+    remoteship.team = 1
 
     gs = GameState()
     localplayer = ShipState()
     localplayer.position = [0, 0]
     localplayer.alignment = random()
+    localplayer.team = 0
     gs.spawn(localplayer)
     gs.spawn(remoteship)
     planet = PlanetState()
