@@ -65,7 +65,10 @@ class StateObject(object):
     self.stateformat = ""
     self.die = False
     self.id = 0
-  
+ 
+  def tick(self, dt):
+    pass
+
   def bind(self, state):
     self.state = state
     return self
