@@ -230,7 +230,7 @@ def rungame():
                 if gshist[i].clock == clk:
                   found = i
 
-              print "command is applied at", clk, "which is in position", i, "in the history. our current clock is", gs.clock
+              print "command is applied at", clk, "which is in position", found, "in the history. our current clock is", gs.clock
 
               rship = gshist[i].getById(othershipid)
             else:
@@ -248,13 +248,12 @@ def rungame():
               print "gor unknown message:", control.__repr__()
 
             try:
-              for i in range(found, len(gshist)):
+              for i in range(found + 1, len(gshist)):
                 gshist[i] = gshist[i-1].copy()
                 gshist[i].tick()
 
               gs = gshist[-1].copy()
             except NameError, e:
-              print e
               pass
         except error:
           pass
@@ -263,6 +262,7 @@ def rungame():
         else:
           gshist = gshist[1:] + [gs.copy()]
         gs.tick()
+        localplayer = gs.getById(myshipid)
         conn.send(gs.serialize())
       elif mode == "c":
         gsdat = ""
@@ -280,7 +280,7 @@ def rungame():
             last = True
 
         gs.deserialize(gsdat)
-        localplayer = gs.objects[1]
+        localplayer = gs.getById(myshipid)
 
     if catchUpAccum > 2:
       catchUpAccum = 0
