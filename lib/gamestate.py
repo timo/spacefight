@@ -193,7 +193,7 @@ class ShipState(StateObject):
     else:
       self.shield = self.maxShield
 
-  def hitShield(self, damage = 5000):
+  def hitShield(self, damage = 2000):
     print "absorbing", damage, "damage on a shield with", self.shield, "energy and a hull of", self.hull
     if self.shield < damage:
       self.shield, damage = 0, damage - self.shield
