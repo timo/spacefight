@@ -14,6 +14,9 @@ class GameState:
     if data:
       self.deserialize(data)
 
+  def copy(self):
+    return GameState(self.serialize())
+
   def tick(self):
     self.clock += self.tickinterval
     for o in self.objects:
@@ -182,7 +185,7 @@ class ShipState(StateObject):
       bul = BulletState()
       face = scatter([cos(self.alignment * pi * 2) * 0.02, sin(self.alignment * pi * 2) * 0.02], 0.002)
       bul.position = [self.position[0] + face[0], self.position[1] + face[1]]
-      bul.speed = face
+      bul.speed = [face[0] + self.speed[0], face[1] + self.speed[1]]
       bul.team = self.team
       self.state.spawn(bul)
       self.timeToReload = self.reloadInterval
@@ -246,6 +249,8 @@ class BulletState(StateObject):
       self.die = True
 
   def collide(self, other, vec):
+    if other.typename == self.typename:
+      return
     try:
       if other.team != self.team:
         self.die = True
@@ -254,14 +259,14 @@ class BulletState(StateObject):
 
 class PlanetState(StateObject):
   typename = "ps"
-  mass = 25
+  mass = 20
   def __init__(self, data = None):
     StateObject.__init__(self)
 
     self.position = [0, 0]
     self.speed = [0, 0] 
     self.size = 6
-    self.team = 0
+    self.team = -1
 
     self.state = None
 

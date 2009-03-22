@@ -102,11 +102,13 @@ def rungame():
     gs.spawn(localplayer)
     gs.spawn(remoteship)
     planet = PlanetState()
-    #planet.position = [random() * 30 - 15, random() * 30 - 15]
-    #gs.spawn(planet)
+    planet.position = [random() * 200 - 100, random() * 200 - 100]
+    gs.spawn(planet)
     print "transmitting state"
     conn.send(gs.serialize())
   
+    othershipid = remoteship.id
+
   elif mode == "c":
     conn = socket(AF_INET, SOCK_DGRAM)
     try:
@@ -148,6 +150,7 @@ def rungame():
   conn.setblocking(0)
   gs.tickinterval = tickinterval
 
+  myshipid = localplayer.id
 
   # yay! play the game!
   
@@ -160,6 +163,12 @@ def rungame():
   timer.gameSpeed = 1
 
   catchUpAccum = 0
+
+  def sendCmd(cmd):
+    conn.send(struct.pack("ic", gs.clock, cmd))
+
+  if mode == "s":
+    gshist = []
 
   while running:
     timer.startFrame()
@@ -176,22 +185,22 @@ def rungame():
       if mode == "s":
         localplayer.turning = -1
       else:
-        conn.send("l")
+        sendCmd("l")
     if kp[K_RIGHT]:
       if mode == "s":
         localplayer.turning = 1
       else:
-       conn.send("r")
+       sendCmd("r")
     if kp[K_UP]:
       if mode == "s":
         localplayer.thrust = 1
       else:
-        conn.send("t")
+        sendCmd("t")
     if kp[K_SPACE]:
       if mode == "s":
         localplayer.firing = True
       else:
-        conn.send("f")
+        sendCmd("f")
 
     catchUpAccum += timer.catchUp
     if catchUpAccum < 2 or mode == "s":
@@ -212,19 +221,40 @@ def rungame():
       if mode == "s":
         try:
           while True:
-            control = conn.recv(4096)
-            if control[0] == "l":
-              remoteship.turning = -1
-            elif control[0] == "r":
-              remoteship.turning = 1
-            elif control[0] == "t":
-              remoteship.thrust = 1
-            elif control[0] == "f":
-              remoteship.firing = True
+            msg, sender = conn.recvfrom(4096)
+            clk, cmd = struct.unpack("ic", msg)
+            # find the matching gs object in the past
+            found = 0
+            for i in range(len(gshist)):
+              if gshist[i].clock == clk:
+                found = i
+
+            print "command is applied at", clk, "which is in position", i, "in the history. our current clock is", gs.clock
+
+            rship = gshist[i].getById(othershipid)
+
+            if cmd == "l":
+              rship.turning = -1
+            elif cmd == "r":
+              rship.turning = 1
+            elif cmd == "t":
+              rship.thrust = 1
+            elif cmd == "f":
+              rship.firing = True
             else:
               print "gor unknown message:", control.__repr__()
+
+            for i in range(found, len(gshist)):
+              gshist[i] = gshist[i-1].copy()
+              gshist[i].tick()
+
+            gs = gshist[-1].copy()
         except error:
-         pass
+          pass
+        if len(gshist) < 20:
+          gshist.append(gs.copy())
+        else:
+          gshist = gshist[1:] + [gs.copy()]
         gs.tick()
         conn.send(gs.serialize())
       elif mode == "c":
