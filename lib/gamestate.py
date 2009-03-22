@@ -10,6 +10,7 @@ class GameState:
     self.objects = []
     self.tickinterval = 50 # in miliseconds
     self.clock = 0
+    self.nextNewId = 0
     if data:
       self.deserialize(data)
 
@@ -21,6 +22,8 @@ class GameState:
         self.objects.remove(o)
 
   def spawn(self, object):
+    object.id = self.nextNewId
+    self.nextNewId += 1
     self.objects.append(object.bind(self))
 
   def serialize(self):
@@ -53,6 +56,7 @@ class StateObject(object):
     self.statevars = []
     self.stateformat = ""
     self.die = False
+    self.id = 0
   
   def bind(self, state):
     self.state = state
@@ -89,8 +93,8 @@ class ShipState(StateObject):
     self.firing = 0
     self.team = 0
 
-    self.statevars = ["r", "g", "b", "x", "y", "alignment", "timeToReload", "reloadInterval", "team"]
-    self.stateformat = "8f1b"
+    self.statevars = ["id", "r", "g", "b", "x", "y", "alignment", "timeToReload", "reloadInterval", "team"]
+    self.stateformat = "i8f1b"
 
     if data:
       self.deserialize(data)
@@ -138,8 +142,8 @@ class BulletState(StateObject):
     self.lifetime = 10000
     self.state = None
    
-    self.statevars = ["x", "y", "sx", "sy", "team", "lifetime"]
-    self.stateformat = "4fbi"
+    self.statevars = ["id", "x", "y", "sx", "sy", "team", "lifetime"]
+    self.stateformat = "i4fbi"
 
     if data:
       self.deserialize(data)
