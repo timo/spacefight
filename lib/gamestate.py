@@ -33,6 +33,7 @@ class GameState:
 
   def deserialize(self, data):
     self.objects = []
+    odata = data
     self.clock, data = struct.unpack("i", data[:4])[0], data [4:]
     while len(data) > 0:
       type, data = data[:2], data[2:]
@@ -45,7 +46,11 @@ class GameState:
       objlen = struct.calcsize(obj.stateformat)
       objdat, data = data[:objlen], data[objlen:]
 
-      obj.deserialize(objdat)
+      try:
+        obj.deserialize(objdat)
+      except:
+        print "could not deserialize", odata.__repr__(), "- chunk:", objdat.__repr__()
+        raise
 
       self.objects.append(obj)
 
@@ -76,7 +81,11 @@ class StateObject(object):
     return struct.pack(self.stateformat, *[getattr(self, varname) for varname in self.statevars])
 
   def deserialize(self, data):
-    vals = struct.unpack(self.stateformat, data)
+    try:
+      vals = struct.unpack(self.stateformat, data)
+    except:
+      print "error while unpacking a", self.typename, self.__repr__()
+      raise
     for k, v in zip(self.statevars, vals):
       setattr(self, k, v)
     self.post_deserialize()
