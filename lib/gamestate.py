@@ -177,7 +177,7 @@ class PlanetState(StateObject):
 
     self.state = None
 
-    self.statevars = ["id", "x", "y", "s", "team"]
+    self.statevars = ["id", "x", "y", "size", "team"]
     self.stateformat = "i3fb"
 
     if data:
