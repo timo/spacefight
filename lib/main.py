@@ -205,8 +205,6 @@ def rungame():
       pygame.display.flip()
 
       if mode == "s":
-        gs.tick()
-        conn.send(gs.serialize())
         try:
           while True:
             control = conn.recv(4096)
@@ -222,6 +220,8 @@ def rungame():
               print "gor unknown message:", control.__repr__()
         except error:
          pass
+        gs.tick()
+        conn.send(gs.serialize())
       elif mode == "c":
         gsdat = ""
         while not gsdat:
