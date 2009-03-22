@@ -2,7 +2,7 @@ from __future__ import with_statement
 import gamestate
 from OpenGL.GL import *
 from with_opengl import glPrimitive, glMatrix
-from math import pi, sin, cos
+from math import pi, sin, cos, sqrt, log
 
 def renderGameGrid(player):
   with glPrimitive(GL_LINES):
@@ -46,7 +46,7 @@ def renderShip(ship):
   if ship.shield < ship.maxShield:
     amount = 1.0 * ship.shield / ship.maxShield
     with glPrimitive(GL_LINE_LOOP):
-      glColor(1.0 - amount, amount, 0, amount ** 4)
+      glColor(1.0 - amount, amount, 0, sqrt(1 + log((amount + 0.1) * 0.9, 10) / 2.5))
       for i in range(0, 360, 36):
         glVertex2f(sin(i / 180. * pi) * 2, cos(i / 180. * pi) * 2)
 

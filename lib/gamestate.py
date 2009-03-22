@@ -236,6 +236,9 @@ class BulletState(StateObject):
     if self.lifetime <= 0:
       self.die = True
 
+  def collide(self, other, vec):
+    self.die = True
+
 class PlanetState(StateObject):
   typename = "ps"
   mass = 50
