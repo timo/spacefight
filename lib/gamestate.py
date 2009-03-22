@@ -172,7 +172,7 @@ class ShipState(StateObject):
     self.turning = 0
 
     if self.thrust:
-      self.speed = [cos(self.alignment * pi * 2) * 0.01, sin(self.alignment * pi * 2) * 0.01]
+      self.speed = [self.speed[0] + cos(self.alignment * pi * 2) * 0.0002, self.speed[1] + sin(self.alignment * pi * 2) * 0.0002]
       self.thrust = 0
 
     if self.timeToReload > 0:
@@ -254,7 +254,7 @@ class BulletState(StateObject):
 
 class PlanetState(StateObject):
   typename = "ps"
-  mass = 50
+  mass = 25
   def __init__(self, data = None):
     StateObject.__init__(self)
 
