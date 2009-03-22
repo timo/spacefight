@@ -20,8 +20,8 @@ def renderGameGrid(player):
         glColor(0.15, 0.15, 0, 1)
       else:
         glColor(0.05, 0.05, 0, 1)
-      glVertex2f(x, -100)
-      glVertex2f(x, 100)
+      glVertex2f(x, player.position[1] - 30)
+      glVertex2f(x, player.position[1] + 30)
     for y in range(int(player.position[1] - 30), int(player.position[1] + 30), 1):
       if y % 10 == 0:
         glColor(0.3, 0.3, 0)
@@ -29,8 +29,8 @@ def renderGameGrid(player):
         glColor(0.15, 0.15, 0)
       else:
         glColor(0.05, 0.05, 0)
-      glVertex2f(-100, y)
-      glVertex2f(100, y)
+      glVertex2f(player.position[0] - 30, y)
+      glVertex2f(player.position[0] + 30, y)
 
 
 def renderWholeState(state):
