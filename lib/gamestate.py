@@ -67,6 +67,7 @@ class GameState:
       self.objects.append(obj)
 
   def getById(self, id):
+    # XXX: turn into a for loop
     return [obj for obj in self.objects if obj.id == id][0]
 
   def doGravity(self, dt):
@@ -141,6 +142,30 @@ class StateObject(object):
 
   def command(self, cmd):
     pass
+
+  def getProxy(self, history):
+    return StateObjectProxy(self, history)
+
+class StateObjectProxy(object):
+  def __init__(self, obj, history):
+    self.proxy_id = obj.id
+    self.proxy_objref = obj
+    history.registerProxy(self)
+
+  def proxy_update(self, gamestate):
+    self.objref = gamestate.getById(self.id)
+  
+  def __getattr__(self, attr):
+    if attr.startswith("proxy_"):
+      return object.__getattribute__(self, attr)
+    else:
+      return self.proxy_objref.__getattribute__(attr)
+
+  def __setattr__(self, attr, value):
+    try:
+      self.objref.__setattr__(attr, value)
+    except:
+      object.__setattr__(self, attr, value)
 
 class ShipState(StateObject):
   typename = "sp"
@@ -309,9 +334,18 @@ class StateHistory:
     self.inputs = [[]]
     self.maxstates = 20
     self.firstDirty = 0
+
+    self.proxies = []
  
   def __getitem__(self, i):
     return self.gsh.__getitem__(i)
+
+  def registerProxy(self, po):
+    self.proxies.append(po)
+
+  def updateProxies(self):
+    for po in self.proxies:
+      po.proxy_update(self.gsh[-1])
 
   def inject(self, id, command, clock = None):
     if clock:
@@ -323,22 +357,28 @@ class StateHistory:
     else:
       found = len(self.gsh) - 1
 
-    self.firstDirty = found - 1
+    self.firstDirty = found
     self.inputs[found].append((id, command))
 
   def apply(self):
     for i in range(self.firstDirty + 1, len(self.gsh)):
-      self.gsh[i] = self.gsh[i - 1].copy()
+      # this trick allows us to keep the gamestates
+      # instead of regenerating them all the time
+      self.gsh[i] = self.gsh[i - 1]
+      self.gsh[i - 1] = self.gsh[i - 1].copy()
       self.gsh[i].control(self.inputs[i - 1])
       self.gsh[i].tick()
 
+    if self.firstDirty + 1 - len(self.gsh):
+      self.updateProxies()
     self.firstDirty = len(self.gsh)
 
     if len(self.gsh) < self.maxstates:
-      self.gsh.append(self.gsh[-1].copy())
+      self.gsh = self.gsh[:-1] + [self.gsh[-1].copy(), self.gsh[-1]]
       self.inputs.append([])
     else:
-      self.gsh = self.gsh[1:] + [self.gsh[-1].copy()]
+      # again: make sure to keep the gamestate at the top intact!
+      self.gsh = self.gsh[1:-1] + [self.gsh[-1].copy(), self.gsh[-1]]
       self.inputs = self.inputs[1:] + [[]]
 
     self.gsh[-1].control(self.inputs[-2])
