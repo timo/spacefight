@@ -283,22 +283,25 @@ class PlanetState(StateObject):
 
     self.position = [0, 0]
     self.speed = [0, 0] 
+    self.color = [random(), random(), random()]
     self.size = 6
     self.team = -1
 
     self.state = None
 
-    self.statevars = ["id", "x", "y", "size", "team"]
-    self.stateformat = "i3fb"
+    self.statevars = ["id", "x", "y", "r", "g", "b", "size", "team"]
+    self.stateformat = "i6fb"
 
     if data:
       self.deserialize(data)
 
   def pre_serialize(self):
     self.x, self.y = self.position
+    self.r, self.g, self.b = self.color
 
   def post_deserialize(self):
     self.position = [self.x, self.y]
+    self.color = [self.r, self.g, self.b]
 
 class StateHistory:
   def __init__(self, initialState):

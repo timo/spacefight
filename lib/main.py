@@ -111,9 +111,10 @@ def rungame():
     localplayer.alignment = random()
     localplayer.team = 0
     gs.spawn(localplayer)
-    planet = PlanetState()
-    planet.position = [random() * 200 - 100, random() * 200 - 100]
-    gs.spawn(planet)
+    for i in range(10):
+      planet = PlanetState()
+      planet.position = [random() * 200 - 100, random() * 200 - 100]
+      gs.spawn(planet)
 
     myshipid = localplayer.id
 

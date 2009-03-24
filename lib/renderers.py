@@ -92,7 +92,7 @@ def renderBullet(bul):
 def renderPlanet(pla):
   glTranslate(*pla.position + [0])
   with glPrimitive(GL_POLYGON):
-    glColor(0, 0, 0.7)
+    glColor(*pla.color)
     for i in range(0, 360, 36):
       glVertex2f(sin(i / 180. * pi) * pla.size, cos(i / 180. * pi) * pla.size)
 
