@@ -67,8 +67,11 @@ class GameState:
       self.objects.append(obj)
 
   def getById(self, id):
-    # XXX: turn into a for loop
-    return [obj for obj in self.objects if obj.id == id][0]
+    for obj in self.objects:
+      if obj.id == id:
+        return obj
+
+    raise Exception
 
   def doGravity(self, dt):
     for a in self.objects:
@@ -153,7 +156,7 @@ class StateObjectProxy(object):
     history.registerProxy(self)
 
   def proxy_update(self, gamestate):
-    self.objref = gamestate.getById(self.id)
+    self.proxy_objref = gamestate.getById(self.id)
   
   def __getattr__(self, attr):
     if attr.startswith("proxy_"):
@@ -162,10 +165,13 @@ class StateObjectProxy(object):
       return self.proxy_objref.__getattribute__(attr)
 
   def __setattr__(self, attr, value):
-    try:
-      self.objref.__setattr__(attr, value)
-    except:
+    if attr.startswith("proxy_"):
       object.__setattr__(self, attr, value)
+    else:
+      self.objref.__setattr__(attr, value)
+
+  def __repr__(self):
+    return "<Proxy of %s>" % self.proxy_objref.__repr__()
 
 class ShipState(StateObject):
   typename = "sp"

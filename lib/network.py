@@ -132,8 +132,6 @@ def initClient(addr, port, cport = None):
   myself.remote = False
   clients[None] = myself
 
-  print clients
-
   return gs
 
 def sendCmd(cmd):
@@ -244,4 +242,4 @@ def pumpEvents():
         last = True
 
     main.gsh[-1].deserialize(gsdat[1:])
-    localplayer = main.gsh[-1].getById(clients[None].shipid)
+    main.gsh.updateProxies()
