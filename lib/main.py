@@ -63,10 +63,19 @@ def makePlayerList():
   playerlist = [Text("Players:")] + [Text(c.name) for c in network.clients.values()]
   glDisable(GL_TEXTURE_2D)
 
+chatitems = []
+
+def updateChatLog():
+  global chatitems
+  glEnable(GL_TEXTURE_2D)
+  chatitems = [Text(txt) for txt in network.chatlog]
+  glDisable(GL_TEXTURE_2D)
+
 def rungame():
   global gsh
   global tickinterval
   global playerlist
+  global chatitems
 
   tickinterval = 50
 
@@ -118,7 +127,12 @@ def rungame():
 
   playerlist = []
   makePlayerList()
-
+  sentence = ""
+  textthing = Text(sentence)
+  def updateTextThing():
+    glEnable(GL_TEXTURE_2D)
+    textthing.renderText(sentence)
+    glDisable(GL_TEXTURE_2D)
 
   while running:
     timer.startFrame()
@@ -129,6 +143,19 @@ def rungame():
       if event.type == KEYDOWN:
         if event.key == K_ESCAPE:
           running = False
+        elif K_a <= event.key <= K_z:
+          sentence += chr(ord('a') + event.key - K_a)
+          updateTextThing()
+        elif event.key == K_SPACE:
+          sentence += " "
+          updateTextThing()
+        elif event.key == K_BACKSPACE:
+          sentence = sentence[:-1]
+          updateTextThing()
+        elif event.key == K_RETURN:
+          network.sendChat(sentence)
+          sentence = ""
+          updateTextThing()
 
     kp = pygame.key.get_pressed()
     if kp[K_LEFT]:
@@ -157,6 +184,12 @@ def rungame():
           for pli in playerlist:
             pli.draw()
             glTranslate(0, 16, 0)
+        with glMatrix():
+          glScale(3, 3, 1)
+          glTranslate(16, 360, 0)
+          for msg in [textthing] + chatitems[::-1]:
+            msg.draw()
+            glTranslate(0, -17, 0)
         glDisable(GL_TEXTURE_2D)
 
       pygame.display.flip()

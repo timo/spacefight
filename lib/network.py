@@ -14,6 +14,7 @@ SHAKE_YOURID = "i"
 
 INFO_PLAYERS = "p"
 
+CHAT_MESSAGE = "m"
 
 MODE_CLIENT = "c"
 MODE_SERVER = "s"
@@ -34,6 +35,8 @@ conn = None # the server socket
 srvaddr = ("", 1)
 
 nextTeam = 1
+
+chatlog = []
 
 def setupConn():
   global conn
@@ -134,6 +137,21 @@ def initClient(addr, port, cport = None):
 
   return gs
 
+def sendChat(chat):
+  global clients
+  global srvaddr
+  if mode == "c":
+    msg = TYPE_CHAT + CHAT_MESSAGE + chat
+    conn.sendto(msg, srvaddr)
+  else:
+    chatlog.append(clients[None].name + ": " + chat)
+    dmsg = struct.pack("cc128s", TYPE_CHAT, CHAT_MESSAGE, ": ".join([clients[None].name, chat]))
+    for dest in clients.values():
+      if dest.remote:
+        dest.socket.send(dmsg)
+
+    main.updateChatLog()
+
 def sendCmd(cmd):
   global clients
   global srvaddr
@@ -148,6 +166,7 @@ def pumpEvents():
   global mode
   global clients
   global nextTeam
+  global chatlist
 
   if mode == "s":
     try:
@@ -195,6 +214,16 @@ def pumpEvents():
             
               main.makePlayerList()
 
+        elif type == TYPE_CHAT:
+          if msg[1] == CHAT_MESSAGE:
+            chatlog.append(clients[sender].name + ": " + msg[2:])
+            dmsg = struct.pack("cc128s", TYPE_CHAT, CHAT_MESSAGE, ": ".join([clients[sender].name, msg[2:]]))
+            for dest in clients.values():
+              if dest.remote:
+                dest.socket.send(dmsg)
+
+            main.updateChatLog()
+
     except error, e:
       if e.args[0] != 11:
         raise
@@ -230,6 +259,10 @@ def pumpEvents():
               clients[nc.shipid] = nc
 
             main.makePlayerList()
+        elif data[0] == TYPE_CHAT:
+          if data[1] == CHAT_MESSAGE:
+            chatlog.append(data[2:])
+            main.updateChatLog()
 
       except error:
         pass
