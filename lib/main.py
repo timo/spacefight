@@ -58,6 +58,7 @@ def init():
   glClearColor(0.1,0.1,0.0,1.0)
 
 def makePlayerList():
+  global playerlist
   glEnable(GL_TEXTURE_2D)
   playerlist = [Text("Players:")] + [Text(c.name) for c in network.clients.values()]
   glDisable(GL_TEXTURE_2D)
@@ -65,6 +66,7 @@ def makePlayerList():
 def rungame():
   global gsh
   global tickinterval
+  global playerlist
 
   tickinterval = 50
 
@@ -114,9 +116,9 @@ def rungame():
 
   catchUpAccum = 0
 
-  glEnable(GL_TEXTURE_2D)
   playerlist = []
-  glDisable(GL_TEXTURE_2D)
+  makePlayerList()
+
 
   while running:
     timer.startFrame()
