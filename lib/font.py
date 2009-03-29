@@ -15,6 +15,7 @@ class Text:
     self.renderText(thetext)
 
   def renderText(self, thetext):
+    self.thetext = thetext
     text = thefont.render(thetext, True, (255, 255, 255)).convert_alpha()
     npo2 = lambda x: int(2 ** ceil(log(x, 2)))
     (w, h) = (npo2(text.get_width()), npo2(text.get_height()))
