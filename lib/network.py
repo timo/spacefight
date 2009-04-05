@@ -186,7 +186,7 @@ def pumpEvents():
             if msg[1] == SHAKE_HELLO:
               print "got a shake_hello"
               nc = Client()
-              nc.name = msg[2:]
+              nc.name = msg[2:msg.find("\x00")]
               nc.socket = socket(AF_INET, SOCK_DGRAM)
               nc.socket.connect(sender)
 
@@ -245,8 +245,6 @@ def pumpEvents():
         data = conn.recv(4096)
         if data[0] == TYPE_STATE:
           gsdat = data
-        elif data[0] == TYPE_CHAT:
-          print data[1:]
         elif data[0] == TYPE_INFO:
           if data[1] == INFO_PLAYERS:
             clients = {None: clients[None]}
@@ -255,6 +253,7 @@ def pumpEvents():
               nc = Client()
               chunk, data = data[:struct.calcsize("i32s")], data[struct.calcsize("i32s"):]
               nc.shipid, nc.name = struct.unpack("i32s", chunk)
+              nc.name = nc.name[:nc.name.find("\x00")]
               nc.remote = nc.shipid != clients[None].shipid
               clients[nc.shipid] = nc
 
