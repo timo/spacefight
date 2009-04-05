@@ -68,7 +68,7 @@ chatitems = []
 def updateChatLog():
   global chatitems
   glEnable(GL_TEXTURE_2D)
-  chatitems = [Text(txt) for txt in network.chatlog]
+  chatitems = [Text(txt) for txt in network.chatlog[-10:]]
   glDisable(GL_TEXTURE_2D)
 
 def rungame():
@@ -153,7 +153,8 @@ def rungame():
           sentence = sentence[:-1]
           updateTextThing()
         elif event.key == K_RETURN:
-          network.sendChat(sentence)
+          if sentence:
+            network.sendChat(sentence)
           sentence = ""
           updateTextThing()
 
@@ -185,8 +186,8 @@ def rungame():
             pli.draw()
             glTranslate(0, 16, 0)
         with glMatrix():
-          glScale(3, 3, 1)
-          glTranslate(16, 360, 0)
+          glScale(2, 2, 1)
+          glTranslate(24, 540, 0)
           for msg in [textthing] + chatitems[::-1]:
             msg.draw()
             glTranslate(0, -17, 0)
