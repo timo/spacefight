@@ -4,9 +4,12 @@ from math import pi, sin, cos, sqrt
 from random import random
 import copy
 
+# randomly bend a vector around
 def scatter(lis, amount = 1):
   return [random() * amount - amount / 2 + lisi for lisi in lis]
 
+# this object can be used with the "with" statement to turn on the automatic
+# serialization registration magic of StateObject
 class stateVars:
   def __init__(self, other):
     self.so = other
@@ -17,6 +20,9 @@ class stateVars:
   def __exit__(self, a, b, c):
     del self.so.statevars_enabled
 
+# using this object with the "with" statement, the type of the included vars
+# can be predetermined, instead of letting the magic find it out.
+# this can be used to use smaller types (b instead of i) for saving space.
 class prescribedType:
   def __init__(self, other, type):
     self.so = other
@@ -35,6 +41,9 @@ class prescribedType:
       self.so.statevars_pretype = self.pretyp
     except: pass
 
+# the GameState object holds all objects in the state and can serialize or
+# deserialize itself. it can also accept input commands and relay it to the
+# objects that are supposed to get it.
 class GameState:
   def __init__(self, data = None):
     self.objects = []
@@ -48,6 +57,7 @@ class GameState:
     return copy.deepcopy(self)
 
   def tick(self):
+    # advance the clock and let all objects to their business.
     self.clock += self.tickinterval
     for o in self.objects:
       o.tick(self.tickinterval)
@@ -58,22 +68,30 @@ class GameState:
     self.doCollisions(self.tickinterval)
 
   def spawn(self, object):
+    # spawn the object into the state and bind it
     object.id = self.nextNewId
     self.nextNewId += 1
     self.objects.append(object.bind(self))
 
   def serialize(self):
+    # serialize the whole gamestate
     data = struct.pack("i", self.clock)
     data = data + "".join(obj.typename + obj.serialize() for obj in self.objects)
     return data
 
   def deserialize(self, data):
+    # deserialize the data
+
+    # the fact, that objects gets cleared, is the reason for the GameStateProxy
+    # objects to exist
     self.objects = []
     odata = data
     self.clock, data = struct.unpack("i", data[:4])[0], data [4:]
     while len(data) > 0:
       type, data = data[:2], data[2:]
       
+      # TODO: automatically find the matching object through its 
+      #       typename property
       if type == "sp":
         obj = ShipState()
       elif type == "bu":
@@ -83,6 +101,7 @@ class GameState:
       else:
         print "got unknown type:", type
 
+      # cut the next N bytes out of the data.
       objlen = struct.calcsize(obj.statevars_format)
       objdat, data = data[:objlen], data[objlen:]
 
@@ -129,9 +148,12 @@ class GameState:
           b.collide(a, dv)
 
   def control(self, commands):
+    # relays control messages to the objects.
     for id, cmd in commands:
       self.getById(id).command(cmd)
 
+# the base class for a State Object, that also implements the serialization
+# black magic.
 class StateObject(object):
   typename = "ab"#stract
   mass = 0
@@ -159,20 +181,25 @@ class StateObject(object):
       object.__setattr__(self, attr, value)
 
     try:
+      # only when the magic is turned on and only if the attribute is relevant,
+      # shall we cause magic to happen.
       if self.statevars_enabled and not attr.startswith("statevars"):
         if type(value) == list:
           for i in range(len(value)):
             addAttr("_%s_%d" % (attr, i), value[i])
           self.tuples.append(attr)
+          # don't forget to add the actual tuple value for internal usage.
           raise Exception
         else:
           addAttr(attr, value)
       else:
+        # this is usually called when statevars_enabled is not set.
         raise Exception
 
     except:
       object.__setattr__(self, attr, value)
 
+  # the base class does nothing by itself.
   def tick(self, dt):
     pass
 
@@ -180,6 +207,7 @@ class StateObject(object):
     self.state = state
     return self
 
+  # since the struct module cannot handle lists, we do it instead
   def pre_serialize(self):
     for tup in self.tuples:
       thetup = object.__getattribute__(self, tup)
@@ -188,7 +216,10 @@ class StateObject(object):
 
   def post_deserialize(self):
     for tup in self.tuples:
-      object.__setattr__(self, tup, [object.__getattribute__(self, "_%s_%d" % (tup, i)) for i in range(len(object.__getattribute__(self, tup)))])
+      object.__setattr__(self, tup, \
+        [object.__getattribute__(self, "_%s_%d" % (tup, i)) \
+         for i in range(len( object.__getattribute__(self, tup) )) \
+        ])
 
   def serialize(self):
     self.pre_serialize()
@@ -210,9 +241,12 @@ class StateObject(object):
   def command(self, cmd):
     pass
 
+  # return a proxy object that points at us.
   def getProxy(self, history):
     return StateObjectProxy(self, history)
 
+# the proxy object uses the gamestate history object in order to always point
+# at the current instance of the object it was generated from.
 class StateObjectProxy(object):
   def __init__(self, obj, history):
     self.proxy_id = obj.id
@@ -222,6 +256,8 @@ class StateObjectProxy(object):
   def proxy_update(self, gamestate):
     self.proxy_objref = gamestate.getById(self.id)
   
+  # all attributes that do not have anything to do with the proxy will be
+  # proxied to the StateObject
   def __getattr__(self, attr):
     if attr.startswith("proxy_"):
       return object.__getattribute__(self, attr)
@@ -373,6 +409,10 @@ class PlanetState(StateObject):
     if data:
       self.deserialize(data)
 
+# the StateHistory object saves a backlog of GameState objects in order to
+# interpret input data at the time it happened, even if received with a
+# latency. this allows for fair treatment of all players, except for cheaters,
+# who could easily abuse this system.
 class StateHistory:
   def __init__(self, initialState):
     self.gsh = [initialState]
