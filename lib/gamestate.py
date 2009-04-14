@@ -83,7 +83,7 @@ class GameState:
       else:
         print "got unknown type:", type
 
-      objlen = struct.calcsize(obj.stateformat)
+      objlen = struct.calcsize(obj.statevars_format)
       objdat, data = data[:objlen], data[objlen:]
 
       try:
@@ -188,7 +188,7 @@ class StateObject(object):
 
   def post_deserialize(self):
     for tup in self.tuples:
-      object.__setattr__([object.__getattribute__(self, "_%s_%d" % (tup, i)) for i in range(len(object.__getattribute__(self, tup)))])
+      object.__setattr__(self, tup, [object.__getattribute__(self, "_%s_%d" % (tup, i)) for i in range(len(object.__getattribute__(self, tup)))])
 
   def serialize(self):
     self.pre_serialize()
@@ -259,22 +259,12 @@ class ShipState(StateObject):
     self.firing = 0
     self.turning = 0
     self.thrust = 0
-    #self.statevars = ["id", "r", "g", "b", "x", "y", "alignment", "timeToReload", "reloadInterval", "maxShield", "shield", "hull", "team"]
-    #self.stateformat = "i6f5ib"
 
     if data:
       self.deserialize(data)
 
   def __repr__(self):
     return "<ShipState at %s, team %d, id %d>" % (self.position, self.team, self.id)
-
-  def pre_serialize(self):
-    self.x, self.y = self.position
-    self.r, self.g, self.b = self.color
-
-  def post_deserialize(self):
-    self.position = [self.x, self.y]
-    self.color = (self.r, self.g, self.b)
 
   def tick(self, dt):
     self.position[0] += self.speed[0] * dt

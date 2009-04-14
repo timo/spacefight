@@ -99,7 +99,10 @@ def initClient(addr, port, cport = None):
     try:
       conn.sendto(struct.pack("cc32s", TYPE_SHAKE, SHAKE_HELLO, gethostname()), (addr, int(port)))
       print "hello sent."
-      data = conn.recvfrom(4096)
+      data = ("",)
+      while "tickinterval" not in data[0]:
+        data = conn.recvfrom(4096)
+        print data.__repr__()
     except error:
       pass
 
@@ -223,6 +226,9 @@ def pumpEvents():
                 dest.socket.send(dmsg)
 
             main.updateChatLog()
+
+        else:
+          print msg.__repr__()
 
     except error, e:
       if e.args[0] != 11:
