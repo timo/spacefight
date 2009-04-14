@@ -1,3 +1,4 @@
+from __future__ import with_statement
 import struct
 from math import pi, sin, cos, sqrt
 from random import random
@@ -5,6 +6,34 @@ import copy
 
 def scatter(lis, amount = 1):
   return [random() * amount - amount / 2 + lisi for lisi in lis]
+
+class stateVars:
+  def __init__(self, other):
+    self.so = other
+
+  def __enter__(self):
+    self.so.statevars_enabled = True
+
+  def __exit__(self, a, b, c):
+    del self.so.statevars_enabled
+
+class prescribedType:
+  def __init__(self, other, type):
+    self.so = other
+    self.typ = type
+
+    try:
+      self.pretyp = self.so.statevars_pretype
+    except: pass
+
+  def __enter__(self):
+    self.so.statevars_pretype = self.typ
+
+  def __exit__(self, a, b, c):
+    del self.so.statevars_pretype
+    try:
+      self.so.statevars_pretype = self.pretyp
+    except: pass
 
 class GameState:
   def __init__(self, data = None):
@@ -108,11 +137,42 @@ class StateObject(object):
   mass = 0
   def __init__(self):
     self.state = None
-    self.statevars = []
-    self.stateformat = ""
+    self.statevars = ["id"]
+    self.tuples = []
+    self.statevars_format = "i"
     self.die = False
     self.id = 0
- 
+
+  def __setattr__(self, attr, value):
+
+    def addAttr(attr, value):
+      self.statevars.append(attr)
+      try: self.statevars_format += self.statevars_pretype
+      except AttributeError:
+        if type(value) == int:
+          self.statevars_format += "i"
+        elif type(value) == float:
+          self.statevars_format += "f"
+        else:
+          print "unknown serialization type:"
+          print attr, value, type(value)
+      object.__setattr__(self, attr, value)
+
+    try:
+      if self.statevars_enabled and not attr.startswith("statevars"):
+        if type(value) == list:
+          for i in range(len(value)):
+            addAttr("_%s_%d" % (attr, i), value[i])
+          self.tuples.append(attr)
+          raise Exception
+        else:
+          addAttr(attr, value)
+      else:
+        raise Exception
+
+    except:
+      object.__setattr__(self, attr, value)
+
   def tick(self, dt):
     pass
 
@@ -121,21 +181,25 @@ class StateObject(object):
     return self
 
   def pre_serialize(self):
-    pass
+    for tup in self.tuples:
+      thetup = object.__getattribute__(self, tup)
+      for i in range(len(thetup)):
+        object.__setattr__(self, "_%s_%d" % (tup, i), thetup[i])
 
   def post_deserialize(self):
-    pass
+    for tup in self.tuples:
+      object.__setattr__([object.__getattribute__(self, "_%s_%d" % (tup, i)) for i in range(len(object.__getattribute__(self, tup)))])
 
   def serialize(self):
     self.pre_serialize()
-    return struct.pack(self.stateformat, *[getattr(self, varname) for varname in self.statevars])
+    return struct.pack(self.statevars_format, *[getattr(self, varname) for varname in self.statevars])
 
   def collide(self, other, vec):
     pass
 
   def deserialize(self, data):
     try:
-      vals = struct.unpack(self.stateformat, data)
+      vals = struct.unpack(self.statevars_format, data)
     except:
       print "error while unpacking a", self.typename, self.__repr__()
       raise
@@ -178,23 +242,25 @@ class ShipState(StateObject):
   mass = 1
   def __init__(self, data = None):
     StateObject.__init__(self)
-    self.color = (random(), random(), random())
-    self.position = [0, 0]
-    self.speed = [0, 0]        # in units per milisecond
-    self.alignment = 0         # from 0 to 1
+    with stateVars(self):
+      self.color = [random(), random(), random()]
+      self.position = [0.0, 0.0]
+      self.speed = [0.0, 0.0]        # in units per milisecond
+      self.alignment = 0.0         # from 0 to 1
+      self.timeToReload = 0      # in miliseconds
+      self.reloadInterval = 500
+      self.maxShield = 7500
+      self.shield = 7500
+      self.hull = 10000
+      with prescribedType(self, "b"):
+        self.team = 0
+
+    self.size = 2
+    self.firing = 0
     self.turning = 0
     self.thrust = 0
-    self.timeToReload = 0      # in miliseconds
-    self.reloadInterval = 500
-    self.firing = 0
-    self.team = 0
-    self.size = 2
-    self.maxShield = 7500
-    self.shield = 7500
-    self.hull = 10000
-
-    self.statevars = ["id", "r", "g", "b", "x", "y", "alignment", "timeToReload", "reloadInterval", "maxShield", "shield", "hull", "team"]
-    self.stateformat = "i6f5ib"
+    #self.statevars = ["id", "r", "g", "b", "x", "y", "alignment", "timeToReload", "reloadInterval", "maxShield", "shield", "hull", "team"]
+    #self.stateformat = "i6f5ib"
 
     if data:
       self.deserialize(data)
@@ -269,26 +335,18 @@ class BulletState(StateObject):
   mass = -0.5
   def __init__(self, data = None):
     StateObject.__init__(self)
-    self.position = [0, 0]
-    self.speed = [0, 0]
-    self.size = 1
-    self.team = 0
-    self.lifetime = 10000
-    self.state = None
-   
-    self.statevars = ["id", "x", "y", "sx", "sy", "team", "lifetime"]
-    self.stateformat = "i4fbi"
+    with stateVars(self):
+      self.position = [0, 0]
+      self.speed = [0, 0]
+      self.lifetime = 10000
+      with prescribedType(self, "b"):
+        self.team = 0
 
+    self.state = None
+    self.size = 1
+   
     if data:
       self.deserialize(data)
-
-  def pre_serialize(self):
-    self.x, self.y = self.position
-    self.sx, self.sy = self.speed
-
-  def post_deserialize(self):
-    self.position = [self.x, self.y]
-    self.speed = [self.sx, self.sy]
 
   def tick(self, dt):
     self.position[0] += self.speed[0] * dt
@@ -312,27 +370,18 @@ class PlanetState(StateObject):
   def __init__(self, data = None):
     StateObject.__init__(self)
 
-    self.position = [0, 0]
-    self.speed = [0, 0] 
-    self.color = [random(), random(), random()]
-    self.size = 6
-    self.team = -1
+    with stateVars(self):
+      self.position = [0, 0]
+      self.speed = [0, 0] 
+      self.color = [random(), random(), random()]
+      self.size = 6
+      with prescribedType(self, "b"):
+        self.team = -1
 
     self.state = None
 
-    self.statevars = ["id", "x", "y", "r", "g", "b", "size", "team"]
-    self.stateformat = "i6fb"
-
     if data:
       self.deserialize(data)
-
-  def pre_serialize(self):
-    self.x, self.y = self.position
-    self.r, self.g, self.b = self.color
-
-  def post_deserialize(self):
-    self.position = [self.x, self.y]
-    self.color = [self.r, self.g, self.b]
 
 class StateHistory:
   def __init__(self, initialState):
