@@ -59,7 +59,8 @@ def init():
 
 def makePlayerList():
   global playerlist
-  glEnable(GL_TEXTURE_2D)
+  # the "playerlist" is actually a list of Text objects that will just be rendered underneith each other.
+  glEnable(GL_TEXTURE_2D) # without textures enabled, the texture data cannot be loaded.
   playerlist = [Text("Players:")] + [Text(c.name) for c in network.clients.values()]
   glDisable(GL_TEXTURE_2D)
 
@@ -67,6 +68,7 @@ chatitems = []
 
 def updateChatLog():
   global chatitems
+  # similar to the makePlayerList function
   glEnable(GL_TEXTURE_2D)
   chatitems = [Text(txt) for txt in network.chatlog[-10:]]
   glDisable(GL_TEXTURE_2D)
@@ -99,23 +101,40 @@ def rungame():
     print "s is for server mode, c is for client mode."
     sys.exit()
 
-  if mode == "s":
+  if mode == "s": # in server mode
     gs = network.initServer(int(port))
-  elif mode == "c":
+  elif mode == "c": # in client mode
     gs = network.initClient(addr,int(port), int(cport)) 
+  else:
+    print "specify either 's' or 'c' as mode."
+    sys.exit()
 
+  # sets some stuff for the network sockets.
   network.setupConn()
 
+  # this is important for the simulation.
   gs.tickinterval = tickinterval
 
+  # in order to be reactive, the state history, which is currently server-side
+  # only, has to incorporate input events at the time they actually happened,
+  # rather than when they were received. Thus, a number of old gamestates is
+  # preserved.
+  #
+  # on the client, the history simply deals with python-object changes that
+  # update proxy objects.
   gsh = StateHistory(gs)
-  
+
+  # this is used to fix the camera on the ship and display information about
+  # his ship to the player.
   myshipid = network.clients[None].shipid
+  # a proxy is an object, that will automatically be updated by the gamestate
+  # history object to always reflect the current object. This is accomplished
+  # with black magic.
   localplayer = gs.getById(myshipid).getProxy(gsh)
 
   # yay! play the game!
   
-  # init all stuff
+  # inits pygame and opengl.
   init()
   running = True
   timer.wantedFrameTime = tickinterval * 0.001
@@ -123,12 +142,17 @@ def rungame():
 
   timer.gameSpeed = 1
 
+  # this variable is used to determine, when it would be wise to skip
+  # displaying a single gamestate, to catch up with the time the data
+  # from the server is received.
   catchUpAccum = 0
 
   playerlist = []
   makePlayerList()
+  # used for chat.
   sentence = ""
   textthing = Text(sentence)
+
   def updateTextThing():
     glEnable(GL_TEXTURE_2D)
     textthing.renderText(sentence)
@@ -143,6 +167,8 @@ def rungame():
       if event.type == KEYDOWN:
         if event.key == K_ESCAPE:
           running = False
+
+        # chat stuff
         elif K_a <= event.key <= K_z:
           sentence += chr(ord('a') + event.key - K_a)
           updateTextThing()
@@ -157,7 +183,9 @@ def rungame():
             network.sendChat(sentence)
           sentence = ""
           updateTextThing()
+        # end chat stuff
 
+    # player control stuff
     kp = pygame.key.get_pressed()
     if kp[K_LEFT]:
       sendCmd("l")
@@ -167,13 +195,17 @@ def rungame():
       sendCmd("t")
     if kp[K_SPACE]:
       sendCmd("f")
+    # end player control stuff
 
     catchUpAccum += timer.catchUp
+    # only if the catchUp time is below our patience or we run the server,
+    # the gamestate should be rendered and calculated.
     if catchUpAccum < 2 or network.mode == "s":
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
       with glIdentityMatrix():
-        # do stuff
+        # put the player in the middle of the screen
         glTranslatef(25 - localplayer.position[0], 18.5 - localplayer.position[1], 0)
+        # render everything
         renderers.renderGameGrid(localplayer)
         renderers.renderWholeState(gsh[-1])
 
@@ -195,6 +227,8 @@ def rungame():
 
       pygame.display.flip()
 
+    # for the server, this lets new players in, distributes chat messages and
+    # reacts to player inputs.
     network.pumpEvents()
 
     if catchUpAccum > 2:
