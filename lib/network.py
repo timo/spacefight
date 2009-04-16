@@ -161,7 +161,7 @@ def myrecv(sock):
   wantedlen = struct.calcsize("L")
   first = ""
   while len(first) < wantedlen:
-    first += sock.recv(wantedlen - len(first)
+    first += sock.recv(wantedlen - len(first))
   wantedlen = struct.unpack("L", first)
   second = ""
   while len(second) < wantedlen:
