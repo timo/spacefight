@@ -362,8 +362,8 @@ class BulletState(StateObject):
   def __init__(self, data = None):
     StateObject.__init__(self)
     with stateVars(self):
-      self.position = [0, 0]
-      self.speed = [0, 0]
+      self.position = [0., 0.]
+      self.speed = [0., 0.]
       self.lifetime = 10000
       with prescribedType(self, "b"):
         self.team = 0
