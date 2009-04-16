@@ -155,14 +155,14 @@ def sendCmd(cmd):
   mysend(conn, msg)
 
 def mysend(sock, data):
-  sock.send(struct.pack("L", len(data)) + data)
+  sock.send(struct.pack("i", len(data)) + data)
 
 def myrecv(sock):
-  wantedlen = struct.calcsize("L")
+  wantedlen = struct.calcsize("i")
   first = ""
   while len(first) < wantedlen:
     first += sock.recv(wantedlen - len(first))
-  wantedlen = struct.unpack("L", first)[0]
+  wantedlen = struct.unpack("i", first)[0]
   second = ""
   while len(second) < wantedlen:
     second += sock.recv(wantedlen - len(second))
