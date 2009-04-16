@@ -27,6 +27,20 @@ class Client():
     self.socket = None
     self.remote = True
 
+  def __repr__(self):
+    if self.socket:
+      return "<Client %(name)s on %(addr)s%(remote)s with ship %(shipid)s>" % {\
+          'addr': str(self.socket.getpeername()),
+          'remote': ["", " (remote)"][int(self.remote)],
+          'shipid': str(self.shipid) or "None",
+          'name': self.name}
+    else:
+      return "<Client %(name)s (socketless)%(remote)s with ship %(shipid)s>" % {\
+          'remote': ["", " (remote)"][int(self.remote)],
+          'shipid': str(self.shipid) or "None",
+          'name': self.name}
+      
+
 
 clients = {} # in server mode this is a dict of (addr, port) to Client
              # in client mode this is a dict of shipid to Client
@@ -43,7 +57,6 @@ def setupConn():
   conn.setblocking(0)
 
 def initServer(port):
-  global clients
   global conn
   global mode
 
@@ -128,13 +141,11 @@ def initClient(addr, port, cport = None):
   return gs
 
 def sendChat(chat):
-  global clients
   global srvaddr
   msg = TYPE_CHAT + CHAT_MESSAGE + chat
   conn.sendto(msg, srvaddr)
 
 def sendCmd(cmd):
-  global clients
   global srvaddr
   msg = struct.pack("cic", TYPE_INPUT, main.gsh[-1].clock, cmd)
   conn.sendto(msg, srvaddr)
