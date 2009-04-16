@@ -91,7 +91,7 @@ def initClient(addr, port):
   data = ""
   while not data and not data.startswith("tickinterval"):
     try:
-      mysend(conn, struct.pack("cc32s", TYPE_SHAKE, SHAKE_HELLO, gethostname()))
+      mysend(conn, struct.pack("!cc32s", TYPE_SHAKE, SHAKE_HELLO, gethostname()))
       print "hello sent."
       data = ("",)
       while "tickinterval" not in data:
@@ -125,7 +125,7 @@ def initClient(addr, port):
   while myshipid is None:
     shipid = myrecv(conn)
     if shipid[0] == TYPE_SHAKE and shipid[1] == SHAKE_YOURID:
-      myshipid = struct.unpack("i", shipid[2:])[0]
+      myshipid = struct.unpack("!i", shipid[2:])[0]
       success = True
     elif shipid[0] == TYPE_STATE:
       gs = GameState(shipid[1:])
@@ -151,19 +151,22 @@ def sendChat(chat):
 
 def sendCmd(cmd):
   global srvaddr
-  msg = struct.pack("cic", TYPE_INPUT, main.gsh[-1].clock, cmd)
+  msg = struct.pack("!cic", TYPE_INPUT, main.gsh[-1].clock, cmd)
   mysend(conn, msg)
 
 def mysend(sock, data):
-  sock.send(struct.pack("i", len(data)) + data)
+  sock.send(struct.pack("!i", len(data)) + data)
 
 def myrecv(sock):
-  wantedlen = struct.calcsize("i")
+  wantedlen = struct.calcsize("!i")
   first = ""
   while len(first) < wantedlen:
     first += sock.recv(wantedlen - len(first))
-  wantedlen = struct.unpack("i", first)[0]
+    if len(first) == 0:
+      return ""
+  wantedlen = struct.unpack("!i", first)[0]
   second = ""
+  print "receiving", wantedlen, "bytes"
   while len(second) < wantedlen:
     second += sock.recv(wantedlen - len(second))
   if wantedlen != len(second):
@@ -198,7 +201,7 @@ def pumpEvents():
             type = msg[0]
           else: continue
           if type == TYPE_INPUT:
-            type, clk, cmd = struct.unpack("cic", msg)
+            type, clk, cmd = struct.unpack("!cic", msg)
 
             main.gsh.inject(sender.shipid, cmd, clk)
 
@@ -222,17 +225,17 @@ def pumpEvents():
               main.gsh[-1].spawn(remoteship)
               sender.shipid = remoteship.id
               print "sending a your-id-package"
-              mysend(sender.socket, TYPE_SHAKE + SHAKE_YOURID + struct.pack("i", sender.shipid))
+              mysend(sender.socket, TYPE_SHAKE + SHAKE_YOURID + struct.pack("!i", sender.shipid))
               print "sent."
 
               print "distributing a playerlist"
-              msg = TYPE_INFO + INFO_PLAYERS + "".join(struct.pack("i32s", c.shipid, c.name) for c in clients.values())
+              msg = TYPE_INFO + INFO_PLAYERS + "".join(struct.pack("!i32s", c.shipid, c.name) for c in clients.values())
               for dest in clients.keys():
                 mysend(dest, msg)
 
           elif type == TYPE_CHAT:
             if msg[1] == CHAT_MESSAGE:
-              dmsg = struct.pack("cc128s", TYPE_CHAT, CHAT_MESSAGE, ": ".join([sender.name, msg[2:]]))
+              dmsg = struct.pack("!cc128s", TYPE_CHAT, CHAT_MESSAGE, ": ".join([sender.name, msg[2:]]))
               for dest in clients.values():
                 mysend(dest.socket, dmsg)
 
@@ -263,8 +266,8 @@ def pumpEvents():
           if data[1] == INFO_PLAYERS:
             data = data[2:]
             nc = Client()
-            chunk, data = data[:struct.calcsize("i32s")], data[struct.calcsize("i32s"):]
-            nc.shipid, nc.name = struct.unpack("i32s", chunk)
+            chunk, data = data[:struct.calcsize("!i32s")], data[struct.calcsize("!i32s"):]
+            nc.shipid, nc.name = struct.unpack("!i32s", chunk)
             nc.name = nc.name[:nc.name.find("\x00")]
             nc.remote = nc.shipid != clients[None].shipid
             # we want our client as the None-client, so we reassign this here.

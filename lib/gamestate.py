@@ -161,7 +161,7 @@ class StateObject(object):
     self.state = None
     self.statevars = ["id"]
     self.tuples = []
-    self.statevars_format = "i"
+    self.statevars_format = "!i"
     self.die = False
     self.id = 0
 
