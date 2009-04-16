@@ -90,21 +90,17 @@ def rungame():
     elif mode == "c":
       addr = argv[2]
       port = argv[3]
-      if len(argv) > 4:
-        cport = argv[4]
-      else:
-        cport = port
   except:
     print "usage:"
     print argv[0], "s port [ticksize=50]"
-    print argv[0], "c addr port [clientport]"
+    print argv[0], "c addr port"
     print "s is for server mode, c is for client mode."
     sys.exit()
 
   if mode == "s": # in server mode
     gs = network.initServer(int(port))
   elif mode == "c": # in client mode
-    gs = network.initClient(addr,int(port), int(cport)) 
+    gs = network.initClient(addr,int(port)) 
   else:
     print "specify either 's' or 'c' as mode."
     sys.exit()
