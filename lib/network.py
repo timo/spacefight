@@ -98,9 +98,9 @@ def initClient(addr, port):
         data = myrecv(conn)
         print data.__repr__(), "tickinterval" in data
     except error:
-      pass
+      raise
 
-  print "Got tickinterval."
+  print "Got tickinterval.", data
   ticki = ""
   data  = data.split(":")[1]
   try:
@@ -162,10 +162,12 @@ def myrecv(sock):
   first = ""
   while len(first) < wantedlen:
     first += sock.recv(wantedlen - len(first))
-  wantedlen = struct.unpack("L", first)
+  wantedlen = struct.unpack("L", first)[0]
   second = ""
   while len(second) < wantedlen:
-    second += sock.recv(wantedlen - len(first))
+    second += sock.recv(wantedlen - len(second))
+  if wantedlen != len(second):
+    print wantedlen, len(second)
   return second
 
 def pumpEvents():
