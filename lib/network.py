@@ -212,7 +212,7 @@ def pumpEvents():
               main.gsh[-1].spawn(remoteship)
               sender.shipid = remoteship.id
               print "sending a your-id-package"
-              mysend(sender.socket.send, TYPE_SHAKE + SHAKE_YOURID + struct.pack("i", sender.shipid))
+              mysend(sender.socket, TYPE_SHAKE + SHAKE_YOURID + struct.pack("i", sender.shipid))
               print "sent."
 
               print "distributing a playerlist"
@@ -222,12 +222,11 @@ def pumpEvents():
 
           elif type == TYPE_CHAT:
             if msg[1] == CHAT_MESSAGE:
-              msg += struct.calcsize("cc128s") - len(msg)
-              dmsg = struct.pack("cc128s", TYPE_CHAT, CHAT_MESSAGE, ": ".join([clients[sender].name, msg[2:]]))
+              dmsg = struct.pack("cc128s", TYPE_CHAT, CHAT_MESSAGE, ": ".join([sender.name, msg[2:]]))
               for dest in clients.values():
                 mysend(dest.socket, dmsg)
 
-              print "chat:", cliends[sender].name + ": " + msg[2:]
+              print "chat:", sender.name + ": " + msg[2:]
 
           else:
             print msg.__repr__()
