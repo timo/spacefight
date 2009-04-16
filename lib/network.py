@@ -143,26 +143,14 @@ def initClient(addr, port, cport = None):
 def sendChat(chat):
   global clients
   global srvaddr
-  if mode == "c":
-    msg = TYPE_CHAT + CHAT_MESSAGE + chat
-    conn.sendto(msg, srvaddr)
-  else:
-    chatlog.append(clients[None].name + ": " + chat)
-    dmsg = struct.pack("cc128s", TYPE_CHAT, CHAT_MESSAGE, ": ".join([clients[None].name, chat]))
-    for dest in clients.values():
-      if dest.remote:
-        dest.socket.send(dmsg)
-
-    main.updateChatLog()
+  msg = TYPE_CHAT + CHAT_MESSAGE + chat
+  conn.sendto(msg, srvaddr)
 
 def sendCmd(cmd):
   global clients
   global srvaddr
-  if mode == "c":
-    msg = struct.pack("cic", TYPE_INPUT, main.gsh[-1].clock, cmd)
-    conn.sendto(msg, srvaddr)
-  else:
-    main.gsh.inject(clients[None].shipid, cmd)
+  msg = struct.pack("cic", TYPE_INPUT, main.gsh[-1].clock, cmd)
+  conn.sendto(msg, srvaddr)
 
 def pumpEvents():
   global conn

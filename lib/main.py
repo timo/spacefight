@@ -135,7 +135,8 @@ def rungame():
   # yay! play the game!
   
   # inits pygame and opengl.
-  init()
+  if mode == "c":
+    init()
   running = True
   timer.wantedFrameTime = tickinterval * 0.001
   timer.startTiming()
@@ -160,82 +161,85 @@ def rungame():
 
   while running:
     timer.startFrame()
-    for event in pygame.event.get():
-      if event.type == QUIT:
-        running = False
-
-      if event.type == KEYDOWN:
-        if event.key == K_ESCAPE:
+    if mode == "c":
+      for event in pygame.event.get():
+        if event.type == QUIT:
           running = False
 
-        # chat stuff
-        elif K_a <= event.key <= K_z:
-          sentence += chr(ord('a') + event.key - K_a)
-          updateTextThing()
-        elif event.key == K_SPACE:
-          sentence += " "
-          updateTextThing()
-        elif event.key == K_BACKSPACE:
-          sentence = sentence[:-1]
-          updateTextThing()
-        elif event.key == K_RETURN:
-          if sentence:
-            network.sendChat(sentence)
-          sentence = ""
-          updateTextThing()
-        # end chat stuff
+        if event.type == KEYDOWN:
+          if event.key == K_ESCAPE:
+            running = False
 
-    # player control stuff
-    kp = pygame.key.get_pressed()
-    if kp[K_LEFT]:
-      sendCmd("l")
-    if kp[K_RIGHT]:
-      sendCmd("r")
-    if kp[K_UP]:
-      sendCmd("t")
-    if kp[K_SPACE]:
-      sendCmd("f")
-    # end player control stuff
+          # chat stuff
+          elif K_a <= event.key <= K_z:
+            sentence += chr(ord('a') + event.key - K_a)
+            updateTextThing()
+          elif event.key == K_SPACE:
+            sentence += " "
+            updateTextThing()
+          elif event.key == K_BACKSPACE:
+            sentence = sentence[:-1]
+            updateTextThing()
+          elif event.key == K_RETURN:
+            if sentence:
+              network.sendChat(sentence)
+            sentence = ""
+            updateTextThing()
+          # end chat stuff
 
-    catchUpAccum += timer.catchUp
-    # only if the catchUp time is below our patience or we run the server,
-    # the gamestate should be rendered and calculated.
-    if catchUpAccum < 2 or network.mode == "s":
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-      with glIdentityMatrix():
-        # put the player in the middle of the screen
-        glTranslatef(25 - localplayer.position[0], 18.5 - localplayer.position[1], 0)
-        # render everything
-        renderers.renderGameGrid(localplayer)
-        renderers.renderWholeState(gsh[-1])
+      # player control stuff
+      kp = pygame.key.get_pressed()
+      if kp[K_LEFT]:
+        sendCmd("l")
+      if kp[K_RIGHT]:
+        sendCmd("r")
+      if kp[K_UP]:
+        sendCmd("t")
+      if kp[K_SPACE]:
+        sendCmd("f")
+      # end player control stuff
 
-      with glIdentityMatrix():
-        glScalef(1./32, 1./32, 1)
-        # do gui stuff here
-        with glMatrix():
-          glScale(3, 3, 1)
-          for pli in playerlist:
-            pli.draw()
-            glTranslate(0, 16, 0)
-        with glMatrix():
-          glScale(2, 2, 1)
-          glTranslate(24, 540, 0)
-          for msg in [textthing] + chatitems[::-1]:
-            msg.draw()
-            glTranslate(0, -17, 0)
-        glDisable(GL_TEXTURE_2D)
+      catchUpAccum += timer.catchUp
+      # only if the catchUp time is below our patience or we run the server,
+      # the gamestate should be rendered and calculated.
+      if catchUpAccum < 2 or network.mode == "s":
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        with glIdentityMatrix():
+          # put the player in the middle of the screen
+          glTranslatef(25 - localplayer.position[0], 18.5 - localplayer.position[1], 0)
+          # render everything
+          renderers.renderGameGrid(localplayer)
+          renderers.renderWholeState(gsh[-1])
 
-      pygame.display.flip()
+        with glIdentityMatrix():
+          glScalef(1./32, 1./32, 1)
+          # do gui stuff here
+          with glMatrix():
+            glScale(3, 3, 1)
+            for pli in playerlist:
+              pli.draw()
+              glTranslate(0, 16, 0)
+          with glMatrix():
+            glScale(2, 2, 1)
+            glTranslate(24, 540, 0)
+            for msg in [textthing] + chatitems[::-1]:
+              msg.draw()
+              glTranslate(0, -17, 0)
+          glDisable(GL_TEXTURE_2D)
+
+        pygame.display.flip()
 
     # for the server, this lets new players in, distributes chat messages and
     # reacts to player inputs.
     network.pumpEvents()
 
-    if catchUpAccum > 2:
-      catchUpAccum = 0
-      print "skipped a gamestate update."
+    if mode == "c":
+      if catchUpAccum > 2:
+        catchUpAccum = 0
+        print "skipped a gamestate update."
 
     timer.endFrame()
 
   # exit pygame
-  pygame.quit()
+  if mode == "c":
+    pygame.quit()
