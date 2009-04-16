@@ -53,23 +53,10 @@ def initServer(port):
   conn.bind(("", port))
 
   gs = GameState()
-  localplayer = ShipState()
-  localplayer.position = [random() * 100 - 50, random() * 100 - 50]
-  localplayer.alignment = random()
-  localplayer.team = 0
-  gs.spawn(localplayer)
   for i in range(10):
     planet = PlanetState()
     planet.position = [random() * 200 - 100, random() * 200 - 100]
     gs.spawn(planet)
-
-  myshipid = localplayer.id
-
-  myself = Client()
-  myself.name = gethostname()
-  myself.shipid = myshipid
-  myself.remote = False
-  clients[None] = myself
 
   return gs
 
@@ -200,20 +187,15 @@ def pumpEvents():
               print "distributing a playerlist"
               msg = TYPE_INFO + INFO_PLAYERS + "".join(struct.pack("i32s", c.shipid, c.name) for c in clients.values())
               for dest in clients.values():
-                if dest.remote:
-                  dest.socket.send(msg)
-            
-              main.makePlayerList()
+                dest.socket.send(msg)
 
         elif type == TYPE_CHAT:
           if msg[1] == CHAT_MESSAGE:
-            chatlog.append(clients[sender].name + ": " + msg[2:])
             dmsg = struct.pack("cc128s", TYPE_CHAT, CHAT_MESSAGE, ": ".join([clients[sender].name, msg[2:]]))
             for dest in clients.values():
-              if dest.remote:
-                dest.socket.send(dmsg)
+              dest.socket.send(dmsg)
 
-            main.updateChatLog()
+            print "chat:", cliends[sender].name + ": " + msg[2:]
 
         else:
           print msg.__repr__()
@@ -223,14 +205,9 @@ def pumpEvents():
         raise
 
     main.gsh.apply()
-    main.localplayer = main.gsh[-1].getById(clients[None].shipid)
     msg = TYPE_STATE + main.gsh[-1].serialize()
     for a, c in clients.items():
-      try:
-        if c.remote:
-          c.socket.sendto(msg, a)
-      except Exception, e:
-        raise
+      c.socket.sendto(msg, a)
 
   elif mode == "c":
     gsdat = ""

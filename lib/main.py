@@ -148,16 +148,17 @@ def rungame():
   # from the server is received.
   catchUpAccum = 0
 
-  playerlist = []
-  makePlayerList()
-  # used for chat.
-  sentence = ""
-  textthing = Text(sentence)
+  if mode == "c":
+    playerlist = []
+    makePlayerList()
+    # used for chat.
+    sentence = ""
+    textthing = Text(sentence)
 
-  def updateTextThing():
-    glEnable(GL_TEXTURE_2D)
-    textthing.renderText(sentence)
-    glDisable(GL_TEXTURE_2D)
+    def updateTextThing():
+      glEnable(GL_TEXTURE_2D)
+      textthing.renderText(sentence)
+      glDisable(GL_TEXTURE_2D)
 
   while running:
     timer.startFrame()
