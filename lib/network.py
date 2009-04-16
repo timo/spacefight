@@ -91,11 +91,11 @@ def initClient(addr, port):
   data = ""
   while not data and not data.startswith("tickinterval"):
     try:
-      conn.send(struct.pack("cc32s", TYPE_SHAKE, SHAKE_HELLO, gethostname()))
+      mysend(conn, struct.pack("cc32s", TYPE_SHAKE, SHAKE_HELLO, gethostname()))
       print "hello sent."
       data = ("",)
       while "tickinterval" not in data:
-        data = conn.recv(4096)
+        data = myrecv(conn)
         print data.__repr__(), "tickinterval" in data
     except error:
       pass
@@ -116,14 +116,14 @@ def initClient(addr, port):
   plp.position = [random() * 10, random() * 10]
   plp.alignment = random()
 
-  conn.send(TYPE_SHAKE + SHAKE_SHIP + plp.serialize())
+  mysend(conn, TYPE_SHAKE + SHAKE_SHIP + plp.serialize())
   print "sent ship."
 
   gs = GameState()
 
   myshipid = None
   while myshipid is None:
-    shipid = conn.recv(4096)
+    shipid = myrecv(conn)
     if shipid[0] == TYPE_SHAKE and shipid[1] == SHAKE_YOURID:
       myshipid = struct.unpack("i", shipid[2:])[0]
       success = True
@@ -147,12 +147,18 @@ def initClient(addr, port):
 def sendChat(chat):
   global srvaddr
   msg = TYPE_CHAT + CHAT_MESSAGE + chat
-  conn.send(msg)
+  mysend(conn, msg)
 
 def sendCmd(cmd):
   global srvaddr
   msg = struct.pack("cic", TYPE_INPUT, main.gsh[-1].clock, cmd)
-  conn.send(msg)
+  mysend(conn, msg)
+
+def mysend(sock, data):
+  sock.send(struct.pack("L", len(data)) + data)
+
+def myrecv(sock):
+  return sock.recv(struct.unpack("L", sock.recv(struct.calcsize("L")))[0])
 
 def pumpEvents():
   global conn
@@ -176,11 +182,12 @@ def pumpEvents():
 
         readysock = select(clients.keys(), (), (), 0)[0]
         receiving = bool(readysock)
-        stuff = [(sock.recv(2), clients[sock]) for sock in readysock]
+        stuff = [(myrecv(sock), clients[sock]) for sock in readysock]
         for msg, sender in stuff:
-          type = msg[0]
+          if msg:
+            type = msg[0]
+          else: continue
           if type == TYPE_INPUT:
-            msg += sender.socket.recv(struct.calcsize("cic") - len(msg))
             type, clk, cmd = struct.unpack("cic", msg)
 
             main.gsh.inject(sender.shipid, cmd, clk)
@@ -190,10 +197,9 @@ def pumpEvents():
             # HANDSHAKE CODE BEGIN
             if msg[1] == SHAKE_HELLO:
               print "got a shake_hello"
-              msg += sender.socket.recv(4096)
               sender.name = msg[2:msg.find("\x00")]
 
-              sender.socket.send(TYPE_SHAKE + "tickinterval:" + str(main.tickinterval))
+              mysend(sender.socket, TYPE_SHAKE + "tickinterval:" + str(main.tickinterval))
               print TYPE_SHAKE + "tickinterval:" + str(main.tickinterval)
               print clients
             elif msg[1] == SHAKE_SHIP:
@@ -201,27 +207,25 @@ def pumpEvents():
 
               remoteship = ShipState()
 
-              msg += sender.socket.recv(struct.calcsize(remoteship.statevars_format) - len(msg))
-
               remoteship.team = nextTeam
               nextTeam += 1
               main.gsh[-1].spawn(remoteship)
               sender.shipid = remoteship.id
               print "sending a your-id-package"
-              sender.socket.send(TYPE_SHAKE + SHAKE_YOURID + struct.pack("i", sender.shipid))
+              mysend(sender.socket.send, TYPE_SHAKE + SHAKE_YOURID + struct.pack("i", sender.shipid))
               print "sent."
 
               print "distributing a playerlist"
               msg = TYPE_INFO + INFO_PLAYERS + "".join(struct.pack("i32s", c.shipid, c.name) for c in clients.values())
               for dest in clients.keys():
-                dest.send(msg)
+                mysend(dest, msg)
 
           elif type == TYPE_CHAT:
             if msg[1] == CHAT_MESSAGE:
               msg += struct.calcsize("cc128s") - len(msg)
               dmsg = struct.pack("cc128s", TYPE_CHAT, CHAT_MESSAGE, ": ".join([clients[sender].name, msg[2:]]))
               for dest in clients.values():
-                dest.socket.send(dmsg)
+                mysend(dest.socket, dmsg)
 
               print "chat:", cliends[sender].name + ": " + msg[2:]
 
@@ -235,13 +239,13 @@ def pumpEvents():
     main.gsh.apply()
     msg = TYPE_STATE + main.gsh[-1].serialize()
     for sock in clients.keys():
-      sock.send(msg)
+      mysend(sock, msg)
 
   elif mode == "c":
     gsdat = ""
     while not gsdat:
       try:
-        data = conn.recv(4096)
+        data = myrecv(conn)
         if not data:
           pass
         elif data[0] == TYPE_STATE:
@@ -249,8 +253,6 @@ def pumpEvents():
         elif data[0] == TYPE_INFO:
           if data[1] == INFO_PLAYERS:
             data = data[2:]
-            if len(data) < struct.calcsize("i32s"):
-              data += conn.recv(struct.calcsize("i32s") - len(data))
             nc = Client()
             chunk, data = data[:struct.calcsize("i32s")], data[struct.calcsize("i32s"):]
             nc.shipid, nc.name = struct.unpack("i32s", chunk)
@@ -274,7 +276,7 @@ def pumpEvents():
     last = False
     while not last:
       try: 
-        gsdat = conn.recv(4096)
+        gsdat = myrecv(conn)
       except error:
         last = True
 
