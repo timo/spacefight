@@ -229,7 +229,6 @@ def pumpEvents():
           gsdat = data
         elif data[0] == TYPE_INFO:
           if data[1] == INFO_PLAYERS:
-            clients = {None: clients[None]}
             data = data[2:]
             while len(data) > 0:
               nc = Client()
@@ -237,7 +236,11 @@ def pumpEvents():
               nc.shipid, nc.name = struct.unpack("i32s", chunk)
               nc.name = nc.name[:nc.name.find("\x00")]
               nc.remote = nc.shipid != clients[None].shipid
-              clients[nc.shipid] = nc
+              # we want our client as the None-client, so we reassign this here.
+              if not nc.remote:
+                clients[None] = nc
+              else:
+                clients[nc.shipid] = nc
 
             main.makePlayerList()
         elif data[0] == TYPE_CHAT:

@@ -124,13 +124,15 @@ def rungame():
   # update proxy objects.
   gsh = StateHistory(gs)
 
-  # this is used to fix the camera on the ship and display information about
-  # his ship to the player.
-  myshipid = network.clients[None].shipid
-  # a proxy is an object, that will automatically be updated by the gamestate
-  # history object to always reflect the current object. This is accomplished
-  # with black magic.
-  localplayer = gs.getById(myshipid).getProxy(gsh)
+  # since the server is dedicated and headless now, we don't need a ship for it
+  if mode == "c":
+    # this is used to fix the camera on the ship and display information about
+    # his ship to the player.
+    myshipid = network.clients[None].shipid
+    # a proxy is an object, that will automatically be updated by the gamestate
+    # history object to always reflect the current object. This is accomplished
+    # with black magic.
+    localplayer = gs.getById(myshipid).getProxy(gsh)
 
   # yay! play the game!
   
