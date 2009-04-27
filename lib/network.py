@@ -117,28 +117,27 @@ def initClient(addr, port):
   print "tickinterval is", main.tickinterval
   
   plp = ShipState() # proposed local player state
-  plp.position = [random() * 10, random() * 10]
+  plp.position = [random() * 10., random() * 10.]
+  print "player position:", plp.position
   plp.alignment = random()
 
   mysend(conn, TYPE_SHAKE + SHAKE_SHIP + plp.serialize())
-  print "sent ship."
+  print "sent ship.", plp.serialize().__repr__()
 
-  gs = GameState()
+  gs = None
 
   myshipid = None
   while myshipid is None:
     shipid = myrecv(conn)
     if shipid[0] == TYPE_SHAKE and shipid[1] == SHAKE_YOURID:
       myshipid = struct.unpack("!i", shipid[2:])[0]
-      success = True
-    elif shipid[0] == TYPE_STATE:
-      gs = GameState(shipid[1:])
+  
+  while not gs:
+    statemsg = myrecv(conn)
+    if statemsg[0] == TYPE_STATE:
+      gs = GameState(statemsg[1:])
     else:
       print "oops. what?", shipid.__repr__()
-
-  myship = ShipState()
-  gs.spawn(myship)
-  myship.id = myshipid
 
   myself = Client()
   myself.name = gethostname()
@@ -154,8 +153,8 @@ def sendChat(chat):
   mysend(conn, msg)
 
 def sendCmd(cmd):
-  global srvaddr
   msg = struct.pack("!cic", TYPE_INPUT, main.gsh[-1].clock, cmd)
+  main.gsh.inject(clients[None].shipid, cmd)
   mysend(conn, msg)
 
 def mysend(sock, data):
@@ -227,7 +226,7 @@ def pumpEvents():
             elif msg[1] == SHAKE_SHIP:
               print "got a shake_ship."
 
-              remoteship = ShipState()
+              remoteship = ShipState(msg[2:])
 
               remoteship.team = nextTeam
               nextTeam += 1
@@ -237,7 +236,10 @@ def pumpEvents():
               mysend(sender.socket, TYPE_SHAKE + SHAKE_YOURID + struct.pack("!i", sender.shipid))
               print "sent."
 
-              print "distributing a playerlist"
+              print "sending the complete current gamestate"
+              mysend(sender.socket, TYPE_STATE + main.gsh[-1].serialize())
+
+              print "distributing a playerlist of", len(clients), "players."
               msg = TYPE_INFO + INFO_PLAYERS + "".join(struct.pack("!i32s", c.shipid, c.name) for c in clients.values())
               for dest in clients.keys():
                 mysend(dest, msg)
@@ -258,36 +260,41 @@ def pumpEvents():
         raise
 
     main.gsh.apply()
-    msg = TYPE_COMMAND + COMMAND_SPAWN + struct.pack("!i", gsh[-1].clock) + "".join([spawned.typename + spawned.deserialize() for spawned in gsh[-1].spawns])
-    for dest in clients.values():
-      mysend(dest, msgtypename + )
+    if main.gsh[-2].spawns:
+      print "sending a spawn package:", main.gsh[-2].spawns
+      msg = TYPE_COMMAND + COMMAND_SPAWN + struct.pack("!i", main.gsh[-2].clock) + "".join([spawned.typename + spawned.serialize() for spawned in main.gsh[-2].spawns])
+      for dest in clients.values():
+        mysend(dest.socket, msg)
 
   elif mode == "c":
-    gsdat = ""
-    while not gsdat:
+    receiving = select([conn], (), (), 0)[0]
+    while receiving:
+      receiving = select([conn], (), (), 0)[0]
       try:
         data = myrecv(conn)
         if not data:
-          pass
-          if data[0] == TYPE_INPUT:
-            type, clk, cmd = struct.unpack("!ciic", data)
+          continue
+        elif data[0] == TYPE_INPUT:
+            id, clk, cmd = struct.unpack("!iic", data[1:])
 
-            main.gsh.inject(sender.shipid, cmd, clk)
+            main.gsh.inject(id, cmd, clk)
         elif data[0] == TYPE_STATE:
           gsdat = data
         elif data[0] == TYPE_INFO:
           if data[1] == INFO_PLAYERS:
+            print "got a new playerlist"
             data = data[2:]
-            nc = Client()
-            chunk, data = data[:struct.calcsize("!i32s")], data[struct.calcsize("!i32s"):]
-            nc.shipid, nc.name = struct.unpack("!i32s", chunk)
-            nc.name = nc.name[:nc.name.find("\x00")]
-            nc.remote = nc.shipid != clients[None].shipid
-            # we want our client as the None-client, so we reassign this here.
-            if not nc.remote:
-              clients[None] = nc
-            else:
-              clients[nc.shipid] = nc
+            while data:
+              nc = Client()
+              chunk, data = data[:struct.calcsize("!i32s")], data[struct.calcsize("!i32s"):]
+              nc.shipid, nc.name = struct.unpack("!i32s", chunk)
+              nc.name = nc.name[:nc.name.find("\x00")]
+              nc.remote = nc.shipid != clients[None].shipid
+              # we want our client as the None-client, so we reassign this here.
+              if not nc.remote:
+                clients[None] = nc
+              else:
+                clients[nc.shipid] = nc
 
             main.makePlayerList()
         elif data[0] == TYPE_CHAT:
@@ -296,15 +303,26 @@ def pumpEvents():
             main.updateChatLog()
         elif data[0] == TYPE_COMMAND:
           if data[1] == COMMAND_SPAWN:
+            print "got a spawn command", data.__repr__()
             dat = data[2:]
-            index = main.gsh.byClock(struct.unpack("!i", dat[0])
+            clock, data = struct.unpack("!i", dat[:4]), dat[4:]
             
             while data:
               objtype, data = data[:2], data[2:]
               obj = main.gsh[-1].getSerializeType(objtype)
               ln = main.gsh[-1].getSerializedLen(obj)
               objdat, data = data[:ln], data[ln:]
-              main.gsh[-1].spawn(obj.deserialize(objdat))
+              print "trying to spawn:", objdat.__repr__()
+              obj.deserialize(objdat)
+              print "got obj with id", obj.id
+              try:
+                if main.gsh[-1].getById(obj.id): 
+                  print "already taken."
+                  continue
+                else:
+                  main.gsh.injectObject(obj, clock)
+              except:
+                pass
 
       except error:
         pass

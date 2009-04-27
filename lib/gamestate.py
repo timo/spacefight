@@ -26,9 +26,9 @@ class stateVars:
   def __exit__(self, a, b, c):
     global serializeKnowledgeBase
     if "knowndata" in dir(self):
-      self.so.statevars = knowndata["statevars"]
-      self.so.statevars_format = knowndata["statevars_format"]
-      self.so.tuples = knowndata["tuples"]
+      self.so.statevars = self.knowndata["statevars"]
+      self.so.statevars_format = self.knowndata["statevars_format"]
+      self.so.tuples = self.knowndata["tuples"]
     else:
       del self.so.statevars_enabled
       d = {"statevars": self.so.statevars,
@@ -88,11 +88,15 @@ class GameState:
 
   def spawn(self, object, obvious=False):
     # spawn the object into the state and bind it
-    object.id = self.nextNewId
-    self.nextNewId += 1
+    if not obvious or object.id == 0:
+      object.id = self.nextNewId
+      self.nextNewId += 1
+    else:
+      print "spawning with forced ID:", object.id
     self.objects.append(object.bind(self))
     if not obvious:
-      self.spawns.append(object))
+      self.spawns.append(object)
+    print "spawned:", object.__repr__()
 
   def serialize(self):
     # serialize the whole gamestate
@@ -111,12 +115,12 @@ class GameState:
     elif type == "ps":
       obj = PlanetState()
     else:
-      print "got unknown type:", type
+      print "got unknown type:", type.__repr__()
 
     return obj
 
   def getSerializedLen(self, dataFragment):
-    if isInstance(dataFragment, str):
+    if isinstance(dataFragment, str):
       return struct.calcsize(self.getSerializeType(dataFragment).statevars_format)
     else:
       return struct.calcsize(dataFragment.statevars_format)
@@ -130,7 +134,7 @@ class GameState:
     odata = data
     self.clock, data = struct.unpack("!i", data[:4])[0], data [4:]
     while len(data) > 0:
-      obj = getSerializeType(data)
+      obj = self.getSerializeType(data)
       data = data[2:]
 
       # cut the next N bytes out of the data.
@@ -160,6 +164,8 @@ class GameState:
 
         dv = [a.position[i] - b.position[i] for i in range(2)]
         lns = dv[0] * dv[0] + dv[1] * dv[1]
+        if lns == 0:
+          lns = 0.000001
         con = -0.000001 * a.mass * b.mass / lns
 
         a.speed[0] += con * dv[0] * dt
@@ -249,10 +255,10 @@ class StateObject(object):
 
   def post_deserialize(self):
     for tup in self.tuples:
-      object.__setattr__(self, tup, \
-        [object.__getattribute__(self, "_%s_%d" % (tup, i)) \
-         for i in range(len( object.__getattribute__(self, tup) )) \
-        ])
+      val = [object.__getattribute__(self, "_%s_%d" % (tup, i)) \
+               for i in range(len( object.__getattribute__(self, tup) )) \
+            ]
+      object.__setattr__(self, tup, val)
 
   def serialize(self):
     self.pre_serialize()
@@ -483,6 +489,15 @@ class StateHistory:
 
     self.firstDirty = found
     self.inputs[found].append((id, command))
+
+  def injectObject(self, object, clock = None):
+    if clock:
+      found = self.byClock(clock)
+    else:
+      found = len(self.gsh) -1
+
+    self.firstDirty = found
+    self.gsh[found].spawn(object, True)
 
   def apply(self):
     for i in range(self.firstDirty + 1, len(self.gsh)):
