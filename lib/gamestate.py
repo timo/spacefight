@@ -8,17 +8,33 @@ import copy
 def scatter(lis, amount = 1):
   return [random() * amount - amount / 2 + lisi for lisi in lis]
 
+serializeKnowledgeBase =  {}
+
 # this object can be used with the "with" statement to turn on the automatic
 # serialization registration magic of StateObject
 class stateVars:
   def __init__(self, other):
+    global serializeKnowledgeBase
+    if type(other) in serializeKnowledgeBase:
+      self.knowndata = serializeKnowledgeBase[type(other)]
     self.so = other
 
   def __enter__(self):
-    self.so.statevars_enabled = True
+    if "knowndata" not in dir(self):
+      self.so.statevars_enabled = True
 
   def __exit__(self, a, b, c):
-    del self.so.statevars_enabled
+    global serializeKnowledgeBase
+    if "knowndata" in dir(self):
+      self.so.statevars = knowndata["statevars"]
+      self.so.statevars_format = knowndata["statevars_format"]
+      self.so.tuples = knowndata["tuples"]
+    else:
+      del self.so.statevars_enabled
+      d = {"statevars": self.so.statevars,
+           "statevars_format": self.so.statevars_format,
+           "tuples": self.so.tuples}
+      serializeKnowledgeBase[type(self.so)] = d
 
 # using this object with the "with" statement, the type of the included vars
 # can be predetermined, instead of letting the magic find it out.
@@ -53,11 +69,14 @@ class GameState:
     if data:
       self.deserialize(data)
 
+    self.spawns = []
+
   def copy(self):
     return copy.deepcopy(self)
 
   def tick(self):
     # advance the clock and let all objects to their business.
+    self.spawns = []
     self.clock += self.tickinterval
     for o in self.objects:
       o.tick(self.tickinterval)
@@ -67,17 +86,40 @@ class GameState:
     self.doGravity(self.tickinterval)
     self.doCollisions(self.tickinterval)
 
-  def spawn(self, object):
+  def spawn(self, object, obvious=False):
     # spawn the object into the state and bind it
     object.id = self.nextNewId
     self.nextNewId += 1
     self.objects.append(object.bind(self))
+    if not obvious:
+      self.spawns.append(object))
 
   def serialize(self):
     # serialize the whole gamestate
-    data = struct.pack("i", self.clock)
+    data = struct.pack("!i", self.clock)
     data = data + "".join(obj.typename + obj.serialize() for obj in self.objects)
     return data
+
+  def getSerializeType(self, dataFragment):
+    # TODO: automatically find the matching object through its 
+    #       typename property
+    type, data = dataFragment[:2], dataFragment[2:]
+    if type == "sp":
+      obj = ShipState()
+    elif type == "bu":
+      obj = BulletState()
+    elif type == "ps":
+      obj = PlanetState()
+    else:
+      print "got unknown type:", type
+
+    return obj
+
+  def getSerializedLen(self, dataFragment):
+    if isInstance(dataFragment, str):
+      return struct.calcsize(self.getSerializeType(dataFragment).statevars_format)
+    else:
+      return struct.calcsize(dataFragment.statevars_format)
 
   def deserialize(self, data):
     # deserialize the data
@@ -86,20 +128,10 @@ class GameState:
     # objects to exist
     self.objects = []
     odata = data
-    self.clock, data = struct.unpack("i", data[:4])[0], data [4:]
+    self.clock, data = struct.unpack("!i", data[:4])[0], data [4:]
     while len(data) > 0:
-      type, data = data[:2], data[2:]
-      
-      # TODO: automatically find the matching object through its 
-      #       typename property
-      if type == "sp":
-        obj = ShipState()
-      elif type == "bu":
-        obj = BulletState()
-      elif type == "ps":
-        obj = PlanetState()
-      else:
-        print "got unknown type:", type
+      obj = getSerializeType(data)
+      data = data[2:]
 
       # cut the next N bytes out of the data.
       objlen = struct.calcsize(obj.statevars_format)
@@ -151,6 +183,7 @@ class GameState:
     # relays control messages to the objects.
     for id, cmd in commands:
       self.getById(id).command(cmd)
+
 
 # the base class for a State Object, that also implements the serialization
 # black magic.
@@ -238,6 +271,8 @@ class StateObject(object):
       setattr(self, k, v)
     self.post_deserialize()
 
+    return self
+
   def command(self, cmd):
     pass
 
@@ -324,7 +359,7 @@ class ShipState(StateObject):
       bul.position = [self.position[0] + face[0], self.position[1] + face[1]]
       bul.speed = [face[0] + self.speed[0], face[1] + self.speed[1]]
       bul.team = self.team
-      self.state.spawn(bul)
+      self.state.spawn(bul, True)
       self.timeToReload = self.reloadInterval
       self.firing = False
 
@@ -432,13 +467,17 @@ class StateHistory:
     for po in self.proxies:
       po.proxy_update(self.gsh[-1])
 
+  def byClock(self, clock):
+    found = 0
+    for i in range(len(self.gsh)):
+      if self.gsh[i].clock == clock:
+        found = i
+        break
+    return found
+
   def inject(self, id, command, clock = None):
     if clock:
-      found = 0
-      for i in range(len(self.gsh)):
-        if self.gsh[i].clock == clock:
-          found = i
-          break
+      found = self.byClock(clock)
     else:
       found = len(self.gsh) - 1
 
