@@ -7,6 +7,7 @@ TYPE_STATE = "g"
 TYPE_SHAKE = "c"
 TYPE_CHAT  = "m"
 TYPE_INPUT = "i"
+TYPE_COMMAND = "C"
 TYPE_INFO  = "n"
 
 SHAKE_HELLO  = "h"
@@ -20,6 +21,9 @@ CHAT_MESSAGE = "m"
 MODE_CLIENT = "c"
 MODE_SERVER = "s"
 
+COMMAND_SPAWN = "s"
+COMMAND_KILL  = "k"
+COMMAND_REPLACE = "r"
 
 class Client():
   def __init__(self):
@@ -204,6 +208,11 @@ def pumpEvents():
             type, clk, cmd = struct.unpack("!cic", msg)
 
             main.gsh.inject(sender.shipid, cmd, clk)
+            dmsg = struct.pack("!ciic", type, clk, sender.shipid, cmd)
+
+            for sock in clients.keys():
+              if sock != sender.socket:
+                mysend(sock, dmsg)
 
           elif type == TYPE_SHAKE:
             print "got a shake message"
@@ -249,9 +258,9 @@ def pumpEvents():
         raise
 
     main.gsh.apply()
-    msg = TYPE_STATE + main.gsh[-1].serialize()
-    for sock in clients.keys():
-      mysend(sock, msg)
+    msg = TYPE_COMMAND + COMMAND_SPAWN + struct.pack("!i", gsh[-1].clock) + "".join([spawned.typename + spawned.deserialize() for spawned in gsh[-1].spawns])
+    for dest in clients.values():
+      mysend(dest, msgtypename + )
 
   elif mode == "c":
     gsdat = ""
@@ -260,6 +269,10 @@ def pumpEvents():
         data = myrecv(conn)
         if not data:
           pass
+          if data[0] == TYPE_INPUT:
+            type, clk, cmd = struct.unpack("!ciic", data)
+
+            main.gsh.inject(sender.shipid, cmd, clk)
         elif data[0] == TYPE_STATE:
           gsdat = data
         elif data[0] == TYPE_INFO:
@@ -281,16 +294,20 @@ def pumpEvents():
           if data[1] == CHAT_MESSAGE:
             chatlog.append(data[2:])
             main.updateChatLog()
+        elif data[0] == TYPE_COMMAND:
+          if data[1] == COMMAND_SPAWN:
+            dat = data[2:]
+            index = main.gsh.byClock(struct.unpack("!i", dat[0])
+            
+            while data:
+              objtype, data = data[:2], data[2:]
+              obj = main.gsh[-1].getSerializeType(objtype)
+              ln = main.gsh[-1].getSerializedLen(obj)
+              objdat, data = data[:ln], data[ln:]
+              main.gsh[-1].spawn(obj.deserialize(objdat))
 
       except error:
         pass
 
-    last = False
-    while not last:
-      try: 
-        gsdat = myrecv(conn)
-      except error:
-        last = True
-
-    main.gsh[-1].deserialize(gsdat[1:])
+    main.gsh.apply()
     main.gsh.updateProxies()
