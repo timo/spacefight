@@ -86,6 +86,11 @@ class GameState:
     self.doGravity(self.tickinterval)
     self.doCollisions(self.tickinterval)
 
+    print
+    print "tick done", self.clock
+    for a in self.objects:
+      print "% 3d: %s" % (a.id, a.__repr__())
+
   def spawn(self, object, obvious=False):
     # spawn the object into the state and bind it
     if not obvious or object.id == 0:

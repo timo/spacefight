@@ -74,7 +74,7 @@ def initServer(port):
   conn.setblocking(False)
 
   gs = GameState()
-  for i in range(10):
+  for i in range(1):
     planet = PlanetState()
     planet.position = [random() * 200 - 100, random() * 200 - 100]
     gs.spawn(planet)
@@ -284,6 +284,7 @@ def pumpEvents():
           if data[1] == INFO_PLAYERS:
             print "got a new playerlist"
             data = data[2:]
+            clients = {None: clients[None]}
             while data:
               nc = Client()
               chunk, data = data[:struct.calcsize("!i32s")], data[struct.calcsize("!i32s"):]
