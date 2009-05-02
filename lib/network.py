@@ -209,6 +209,7 @@ def pumpEvents():
             main.gsh.inject(sender.shipid, cmd, clk)
             dmsg = struct.pack("!ciic", type, clk, sender.shipid, cmd)
 
+
             for sock in clients.keys():
               if sock != sender.socket:
                 mysend(sock, dmsg)
@@ -261,7 +262,7 @@ def pumpEvents():
 
     main.gsh.apply()
     if main.gsh[-2].spawns:
-      print "sending a spawn package:", main.gsh[-2].spawns
+      print "sending a spawn package:", main.gsh[-2].spawns, "for clock", main.gsh[-2].clock
       msg = TYPE_COMMAND + COMMAND_SPAWN + struct.pack("!i", main.gsh[-2].clock) + "".join([spawned.typename + spawned.serialize() for spawned in main.gsh[-2].spawns])
       for dest in clients.values():
         mysend(dest.socket, msg)
@@ -275,7 +276,7 @@ def pumpEvents():
         if not data:
           continue
         elif data[0] == TYPE_INPUT:
-            id, clk, cmd = struct.unpack("!iic", data[1:])
+            clk, id, cmd = struct.unpack("!iic", data[1:])
 
             main.gsh.inject(id, cmd, clk)
         elif data[0] == TYPE_STATE:
@@ -306,7 +307,7 @@ def pumpEvents():
           if data[1] == COMMAND_SPAWN:
             print "got a spawn command", data.__repr__()
             dat = data[2:]
-            clock, data = struct.unpack("!i", dat[:4]), dat[4:]
+            clock, data = struct.unpack("!i", dat[:4])[0], dat[4:]
             
             while data:
               objtype, data = data[:2], data[2:]
@@ -318,12 +319,10 @@ def pumpEvents():
               print "got obj with id", obj.id
               try:
                 if main.gsh[-1].getById(obj.id): 
-                  print "already taken."
-                  continue
-                else:
-                  main.gsh.injectObject(obj, clock)
-              except:
-                pass
+                  print "already taken. updating..."
+                  main.gsh.updateObject(obj.id, objdat, clock)
+              except NotFound:
+                main.gsh.injectObject(obj, clock)
 
       except error:
         pass

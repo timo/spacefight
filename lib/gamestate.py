@@ -4,6 +4,9 @@ from math import pi, sin, cos, sqrt
 from random import random
 import copy
 
+class NotFound(Exception):
+  pass
+
 # randomly bend a vector around
 def scatter(lis, amount = 1):
   return lis
@@ -87,11 +90,6 @@ class GameState:
     self.doGravity(self.tickinterval)
     self.doCollisions(self.tickinterval)
 
-    print
-    print "tick done", self.clock
-    for a in self.objects:
-      print "% 3d: %s" % (a.id, a.__repr__())
-
   def spawn(self, object, obvious=False):
     # spawn the object into the state and bind it
     if not obvious or object.id == 0:
@@ -161,7 +159,7 @@ class GameState:
       if obj.id == id:
         return obj
 
-    raise Exception
+    raise NotFound(id)
 
   def doGravity(self, dt):
     for a in self.objects:
@@ -169,6 +167,7 @@ class GameState:
         if b == a: continue
 
         dv = [a.position[i] - b.position[i] for i in range(2)]
+        
         lns = dv[0] * dv[0] + dv[1] * dv[1]
         if lns == 0:
           lns = 0.000001
@@ -503,7 +502,18 @@ class StateHistory:
       found = len(self.gsh) -1
 
     self.firstDirty = found
+    print self.firstDirty , "is the first dirty one on spawn. (clock is", clock, ")"
+    print "current clock was:", self.gsh[-1].clock
     self.gsh[found].spawn(object, True)
+
+  def updateObject(self, id, data, clock = None):
+    if clock:
+      found = self.byClock(clock)
+    else:
+      found = len(self.gsh) -1
+
+    self.firstDirty = found
+    self.gsh[found].getById(id).deserialize(data)
 
   def apply(self):
     for i in range(self.firstDirty + 1, len(self.gsh)):
@@ -513,6 +523,7 @@ class StateHistory:
       self.gsh[i - 1] = self.gsh[i - 1].copy()
       self.gsh[i].control(self.inputs[i - 1])
       self.gsh[i].tick()
+      print "re-ricking dirty", i
 
     if self.firstDirty + 1 - len(self.gsh):
       self.updateProxies()
