@@ -6,7 +6,8 @@ import copy
 
 # randomly bend a vector around
 def scatter(lis, amount = 1):
-  return [random() * amount - amount / 2 + lisi for lisi in lis]
+  return lis
+  #return [random() * amount - amount / 2 + lisi for lisi in lis]
 
 serializeKnowledgeBase =  {}
 
@@ -218,7 +219,7 @@ class StateObject(object):
         if type(value) == int:
           self.statevars_format += "i"
         elif type(value) == float:
-          self.statevars_format += "f"
+          self.statevars_format += "d"
         else:
           print "unknown serialization type:"
           print attr, value, type(value)
@@ -443,8 +444,8 @@ class PlanetState(StateObject):
     StateObject.__init__(self)
 
     with stateVars(self):
-      self.position = [0, 0]
-      self.speed = [0, 0] 
+      self.position = [0.0, 0.0]
+      self.speed = [0.0, 0.0]
       self.color = [random(), random(), random()]
       self.size = 6
       with prescribedType(self, "b"):
