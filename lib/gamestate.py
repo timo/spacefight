@@ -502,8 +502,6 @@ class StateHistory:
       found = len(self.gsh) -1
 
     self.firstDirty = found
-    print self.firstDirty , "is the first dirty one on spawn. (clock is", clock, ")"
-    print "current clock was:", self.gsh[-1].clock
     self.gsh[found].spawn(object, True)
 
   def updateObject(self, id, data, clock = None):
@@ -523,7 +521,6 @@ class StateHistory:
       self.gsh[i - 1] = self.gsh[i - 1].copy()
       self.gsh[i].control(self.inputs[i - 1])
       self.gsh[i].tick()
-      print "re-ricking dirty", i
 
     if self.firstDirty + 1 - len(self.gsh):
       self.updateProxies()
@@ -537,5 +534,6 @@ class StateHistory:
       self.gsh = self.gsh[1:-1] + [self.gsh[-1].copy(), self.gsh[-1]]
       self.inputs = self.inputs[1:] + [[]]
 
-    self.gsh[-1].control(self.inputs[-2])
+    if self.inputs[-2]:
+      self.gsh[-1].control(self.inputs[-2])
     self.gsh[-1].tick()
