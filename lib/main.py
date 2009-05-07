@@ -97,6 +97,9 @@ def rungame():
     print "s is for server mode, c is for client mode."
     sys.exit()
 
+  if mode == "c":
+    init()
+  
   if mode == "s": # in server mode
     gs = network.initServer(int(port))
   elif mode == "c": # in client mode
@@ -104,7 +107,7 @@ def rungame():
   else:
     print "specify either 's' or 'c' as mode."
     sys.exit()
-
+  
   # sets some stuff for the network sockets.
   network.setupConn()
 
@@ -133,8 +136,6 @@ def rungame():
   # yay! play the game!
   
   # inits pygame and opengl.
-  if mode == "c":
-    init()
   running = True
   timer.wantedFrameTime = tickinterval * 0.001
   timer.startTiming()
@@ -201,7 +202,7 @@ def rungame():
       catchUpAccum += timer.catchUp
       # only if the catchUp time is below our patience or we run the server,
       # the gamestate should be rendered and calculated.
-      if catchUpAccum < 2 or network.mode == "s":
+      if catchUpAccum < 2:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         with glIdentityMatrix():
           # put the player in the middle of the screen
@@ -234,8 +235,8 @@ def rungame():
 
     if mode == "c":
       if catchUpAccum > 2:
+        print "catchUpAccum is", catchUpAccum
         catchUpAccum = 0
-        print "skipped a gamestate update."
 
     timer.endFrame()
 
