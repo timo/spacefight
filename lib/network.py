@@ -171,7 +171,6 @@ def myrecv(sock):
       return ""
   wantedlen = struct.unpack("!i", first)[0]
   second = ""
-  print "receiving", wantedlen, "bytes"
   while len(second) < wantedlen:
     second += sock.recv(wantedlen - len(second))
   if wantedlen != len(second):
@@ -327,7 +326,7 @@ def pumpEvents():
               obj = main.gsh[-1].getSerializeType(objtype)
               ln = main.gsh[-1].getSerializedLen(obj)
               objdat, data = data[:ln], data[ln:]
-              print "trying to spawn:", objdat.__repr__()
+              print "trying to spawn:", objdat.__repr__(), "at", clock
               obj.deserialize(objdat)
               print "got obj with id", obj.id
               try:
