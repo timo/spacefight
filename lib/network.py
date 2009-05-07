@@ -2,6 +2,7 @@ import main
 from socket import *
 from gamestate import *
 from select import select
+from timing import timer
 
 TYPE_STATE = "g"
 TYPE_SHAKE = "c"
@@ -15,6 +16,7 @@ SHAKE_SHIP   = "s"
 SHAKE_YOURID = "i"
 
 INFO_PLAYERS = "p"
+INFO_MYCLOCK = "c"
 
 CHAT_MESSAGE = "m"
 
@@ -267,6 +269,11 @@ def pumpEvents():
       for dest in clients.values():
         mysend(dest.socket, msg)
 
+    if main.gsh[-1].clock & 1000:
+      msg = TYPE_INFO + INFO_MYCLOCK + struct.pack("!i", main.gsh[-1].clock)
+      for dest in clients.values():
+        mysend(dest.socket, msg)
+
   elif mode == "c":
     receiving = select([conn], (), (), 0)[0]
     while receiving:
@@ -299,6 +306,12 @@ def pumpEvents():
                 clients[nc.shipid] = nc
 
             main.makePlayerList()
+
+          elif data[1] == INFO_MYCLOCK:
+            clock = struct.unpack("!i", data[2:])[0]
+            timer.catchUp += max(0, (clock - main.gsh[-1].clock) / 1000.)
+            timer.waitUp += min(0, (clock - main.gsh[-1].clock) / 1000.)
+
         elif data[0] == TYPE_CHAT:
           if data[1] == CHAT_MESSAGE:
             chatlog.append(data[2:])

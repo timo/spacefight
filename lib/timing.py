@@ -26,6 +26,7 @@ even if the framerate constantly changes"""
     self.wantedFrameTime = 0.05
 
     self.catchUp = 0
+    self.waitUp = 0
 
   def startTiming(self):
     self.running = True
@@ -46,7 +47,10 @@ even if the framerate constantly changes"""
     """call this function at the end of a frame to finish speed adjusting.
 sets an appropriate value for self.curspd"""
     self.frameTime = time.time() - self.frameStartTime
-    if self.wantedFrameTime - self.catchUp > self.frameTime:
+    if self.waitUp > 0:
+      time.sleep(self.waitUp)
+      self.waitUp = 0
+    elif self.wantedFrameTime - self.catchUp > self.frameTime:
       time.sleep((self.wantedFrameTime - self.catchUp - self.frameTime))
       self.catchUp = 0
     else:
